@@ -99,7 +99,8 @@ def fetch_courses(courseSubject):
             'class_name': name,
             'description': description,
             'notes': notes,
-            'prerequisite': prerequisite
+            'prerequisite': prerequisite,
+            "link": f"https://catalogue.usask.ca/{courseSubject}-{number}"
         })
 
     return courses
