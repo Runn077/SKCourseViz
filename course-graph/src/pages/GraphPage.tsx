@@ -28,8 +28,12 @@ function GraphPage() {
     );
 
     if (courses.length === 0) return <div>Loading...</div>;
-     
-    return <GraphComponent nodes={nodes} edges={edges} />;
+
+    return (
+        <div style={{ width: "100vw", height: "100vh" }}>
+            <GraphComponent nodes={nodes} edges={edges} />
+        </div>
+    );
 }
 
 export default GraphPage
