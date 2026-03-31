@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react"
 import Sigma from "sigma";
 import Graph from "graphology";
+import FA2Layout from "graphology-layout-forceatlas2/worker";
 
 type Props = {
     nodes: any[];
@@ -65,6 +66,22 @@ function GraphComponent({ nodes, edges }: Props) {
                 labelGridCellSize: 60,
                 labelRenderedSizeThreshold: 15,
             });
+
+            // Run layout in background worker
+            const layout = new FA2Layout(graph, {
+                settings: {
+                    gravity: 1,
+                    scalingRatio: 2,
+                    slowDown: 10,
+                },
+            });
+
+            layout.start();
+
+            // Stop after 3 seconds
+            setTimeout(() => {
+                layout.stop();
+            }, 3000);
         });
 
         resizeObserver.observe(container);
