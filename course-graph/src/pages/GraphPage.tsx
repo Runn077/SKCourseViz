@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import GraphComponent from "../components/Graph";
 
 function GraphPage() {
     const [courses, setCourses] = useState<any[]>([]);
@@ -26,9 +27,9 @@ function GraphPage() {
         }))
     );
 
-    console.log(nodes);
-    console.log(edges);
-    return <div>Loaded {courses.length} courses</div>
+    if (courses.length === 0) return <div>Loading...</div>;
+     
+    return <GraphComponent nodes={nodes} edges={edges} />;
 }
 
 export default GraphPage
