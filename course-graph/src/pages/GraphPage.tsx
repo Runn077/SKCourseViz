@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import GraphComponent from "../components/Graph";
+import Legend from "../components/Legend";
 
 function GraphPage() {
     const [courses, setCourses] = useState<any[]>([]);
@@ -30,9 +31,12 @@ function GraphPage() {
 
     if (courses.length === 0) return <div>Loading...</div>;
 
+    const colleges = [...new Set(nodes.map(n => n.college))];
+
     return (
-        <div style={{ width: "100vw", height: "100vh" }}>
+        <div style={{ width: "100%", height: "100%", position: "relative" }}>
             <GraphComponent nodes={nodes} edges={edges} />
+            <Legend colleges={colleges} />
         </div>
     );
 }

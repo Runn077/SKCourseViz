@@ -68,7 +68,7 @@ function GraphComponent({ nodes, edges }: Props) {
                     graph.addNode(node.id, {
                         x: Math.random(),
                         y: Math.random(),
-                        size: 4,
+                        size: 2,
                         color: getCollegeColor(node.college)
                     });
                 }
