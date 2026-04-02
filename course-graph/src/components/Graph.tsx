@@ -3,48 +3,120 @@ import Sigma from "sigma";
 import Graph from "graphology";
 import FA2Layout from "graphology-layout-forceatlas2/worker";
 import { getCollegeColor } from "../utils/collegeColor";
+import type { ClusterMode, CourseNode } from "../types";
 
 type Props = {
-    nodes: { id: string; label: string; college: string }[];
+    nodes: CourseNode[];
     edges: { source: string; target: string }[];
     enabledColleges: Set<string>;
+    visibleNodeIds: Set<string>;
     focusNode: string | null;
+    focusGroup: { mode: ClusterMode; value: string } | null;
+    clusterMode: ClusterMode;
     onNodeDoubleClick: (nodeId: string) => void;
 };
 
-function GraphComponent({ nodes, edges, enabledColleges, focusNode, onNodeDoubleClick }: Props) {
+// Assign initial positions based on cluster group
+function getInitialPositions(
+    nodes: CourseNode[],
+    clusterMode: ClusterMode
+): Map<string, { x: number; y: number }> {
+    const positions = new Map<string, { x: number; y: number }>();
+
+    if (clusterMode === "connectivity") {
+        nodes.forEach((n) => {
+            positions.set(n.id, { x: Math.random(), y: Math.random() });
+        });
+        return positions;
+    }
+
+    // Get unique groups and assign each a position on a circle
+    const getGroup = (n: CourseNode) => {
+        if (clusterMode === "college") return n.college;
+        if (clusterMode === "department") return n.department;
+        return n.subject_code;
+    };
+
+    const groups = [...new Set(nodes.map(getGroup))];
+    const groupPositions = new Map<string, { x: number; y: number }>();
+
+    groups.forEach((group, i) => {
+        const angle = (i / groups.length) * 2 * Math.PI;
+        const radius = 10;
+        groupPositions.set(group, {
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+        });
+    });
+
+    nodes.forEach((n) => {
+        const group = getGroup(n);
+        const center = groupPositions.get(group)!;
+        positions.set(n.id, {
+            x: center.x + (Math.random() - 0.5) * 2,
+            y: center.y + (Math.random() - 0.5) * 2,
+        });
+    });
+
+    return positions;
+}
+
+function GraphComponent({
+    nodes,
+    edges,
+    enabledColleges,
+    visibleNodeIds,
+    focusNode,
+    focusGroup,
+    clusterMode,
+    onNodeDoubleClick,
+}: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<Sigma | null>(null);
     const enabledCollegesRef = useRef<Set<string>>(enabledColleges);
+    const visibleNodeIdsRef = useRef<Set<string>>(visibleNodeIds);
     const highlightedNodeRef = useRef<string | null>(null);
     const onNodeDoubleClickRef = useRef(onNodeDoubleClick);
+    const layoutRef = useRef<FA2Layout | null>(null);
+
     useEffect(() => {
         onNodeDoubleClickRef.current = onNodeDoubleClick;
     }, [onNodeDoubleClick]);
 
+    // Rebuild graph when nodes, edges, or clusterMode changes
     useEffect(() => {
         if (!containerRef.current) return;
         const container = containerRef.current;
 
-        const resizeObserver = new ResizeObserver(() => {
+        const build = () => {
             if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
-            resizeObserver.disconnect();
 
+            // Kill previous layout and renderer
+            if (layoutRef.current) {
+                layoutRef.current.kill();
+                layoutRef.current = null;
+            }
             if (rendererRef.current) {
                 rendererRef.current.kill();
                 rendererRef.current = null;
             }
 
+            highlightedNodeRef.current = null;
+
             const graph = new Graph();
+            const positions = getInitialPositions(nodes, clusterMode);
 
             nodes.forEach((node) => {
                 if (!graph.hasNode(node.id)) {
+                    const pos = positions.get(node.id)!;
                     graph.addNode(node.id, {
-                        x: Math.random(),
-                        y: Math.random(),
+                        x: pos.x,
+                        y: pos.y,
                         size: 4,
                         label: node.label,
                         college: node.college,
+                        department: node.department,
+                        subject_code: node.subject_code,
                         color: getCollegeColor(node.college),
                     });
                 }
@@ -68,8 +140,7 @@ function GraphComponent({ nodes, edges, enabledColleges, focusNode, onNodeDouble
                 defaultEdgeColor: "#ccc",
 
                 nodeReducer: (node, data) => {
-                    const college = data.college as string;
-                    if (!enabledCollegesRef.current.has(college)) {
+                    if (!visibleNodeIdsRef.current.has(node)) {
                         return { ...data, hidden: true };
                     }
                     const highlighted = highlightedNodeRef.current;
@@ -83,11 +154,9 @@ function GraphComponent({ nodes, edges, enabledColleges, focusNode, onNodeDouble
                 edgeReducer: (edge, data) => {
                     const source = graph.source(edge);
                     const target = graph.target(edge);
-                    const sourceCollege = graph.getNodeAttribute(source, "college");
-                    const targetCollege = graph.getNodeAttribute(target, "college");
                     if (
-                        !enabledCollegesRef.current.has(sourceCollege) ||
-                        !enabledCollegesRef.current.has(targetCollege)
+                        !visibleNodeIdsRef.current.has(source) ||
+                        !visibleNodeIdsRef.current.has(target)
                     ) {
                         return { ...data, hidden: true };
                     }
@@ -134,46 +203,97 @@ function GraphComponent({ nodes, edges, enabledColleges, focusNode, onNodeDouble
                 },
             });
             layout.start();
-            setTimeout(() => layout.stop(), 8000);
-        });
+            layoutRef.current = layout;
+            setTimeout(() => {
+                layout.stop();
+                sigma.refresh();
+            }, 8000);
+        };
 
-        resizeObserver.observe(container);
+        // If container already has size, build immediately
+        if (container.offsetWidth > 0 && container.offsetHeight > 0) {
+            build();
+        } else {
+            const resizeObserver = new ResizeObserver(() => {
+                if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+                resizeObserver.disconnect();
+                build();
+            });
+            resizeObserver.observe(container);
+            return () => resizeObserver.disconnect();
+        }
 
         return () => {
-            resizeObserver.disconnect();
+            if (layoutRef.current) {
+                layoutRef.current.kill();
+                layoutRef.current = null;
+            }
             if (rendererRef.current) {
                 rendererRef.current.kill();
                 rendererRef.current = null;
             }
         };
-    }, [nodes, edges]);
+    }, [nodes, edges, clusterMode]);
 
+    // Sync visible nodes without rebuilding
+    useEffect(() => {
+        visibleNodeIdsRef.current = visibleNodeIds;
+        rendererRef.current?.refresh();
+    }, [visibleNodeIds]);
+
+    // Sync enabled colleges without rebuilding
     useEffect(() => {
         enabledCollegesRef.current = enabledColleges;
         rendererRef.current?.refresh();
     }, [enabledColleges]);
 
-    // Zoom to node when focusNode changes
+    // Zoom to a specific node
     useEffect(() => {
         if (!focusNode || !rendererRef.current) return;
         const sigma = rendererRef.current;
         const graph = sigma.getGraph();
-
         if (!graph.hasNode(focusNode)) return;
-
-        // Highlight the node
         highlightedNodeRef.current = focusNode;
         sigma.refresh();
-
-        // Animate camera to the node's position
         const nodePosition = sigma.getNodeDisplayData(focusNode);
         if (!nodePosition) return;
-
         sigma.getCamera().animate(
             { x: nodePosition.x, y: nodePosition.y, ratio: 0.05 },
             { duration: 500 }
         );
     }, [focusNode]);
+
+    // Zoom to a group cluster center
+    useEffect(() => {
+        if (!focusGroup || !rendererRef.current) return;
+        const sigma = rendererRef.current;
+        const graph = sigma.getGraph();
+
+        const { mode, value } = focusGroup;
+
+        const getGroup = (nodeId: string) => {
+            if (mode === "college") return graph.getNodeAttribute(nodeId, "college");
+            if (mode === "department") return graph.getNodeAttribute(nodeId, "department");
+            return graph.getNodeAttribute(nodeId, "subject_code");
+        };
+
+        // Find all nodes in this group and average their display positions
+        const groupNodes = graph.nodes().filter((n) => getGroup(n) === value);
+        if (groupNodes.length === 0) return;
+
+        let sumX = 0, sumY = 0, count = 0;
+        groupNodes.forEach((n) => {
+            const pos = sigma.getNodeDisplayData(n);
+            if (pos) { sumX += pos.x; sumY += pos.y; count++; }
+        });
+
+        if (count === 0) return;
+
+        sigma.getCamera().animate(
+            { x: sumX / count, y: sumY / count, ratio: 0.2 },
+            { duration: 600 }
+        );
+    }, [focusGroup]);
 
     return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 }

@@ -1,40 +1,38 @@
 import { useState, useRef, useEffect } from "react";
 import { getCollegeColor } from "../utils/collegeColor";
-
-type CourseNode = { id: string; label: string; college: string };
+import type { ClusterMode, CourseNode } from "../types";
 
 type SidebarProps = {
     colleges: string[];
+    departments: string[];
+    subjects: string[];
     enabledColleges: Set<string>;
+    enabledDepartments: Set<string>;
+    enabledSubjects: Set<string>;
     onCollegeFilterChange: (enabled: Set<string>) => void;
+    onDepartmentFilterChange: (enabled: Set<string>) => void;
+    onSubjectFilterChange: (enabled: Set<string>) => void;
     nodes: CourseNode[];
     onNodeFocus: (nodeId: string) => void;
+    clusterMode: ClusterMode;
+    onClusterModeChange: (mode: ClusterMode) => void;
+    onGroupFocus: (mode: ClusterMode, value: string) => void;
 };
-export default function Sidebar({ colleges, enabledColleges, onCollegeFilterChange, nodes, onNodeFocus }: SidebarProps) {
+
+export default function Sidebar({
+    colleges, departments, subjects,
+    enabledColleges, enabledDepartments, enabledSubjects,
+    onCollegeFilterChange, onDepartmentFilterChange, onSubjectFilterChange,
+    nodes, onNodeFocus,
+    clusterMode, onClusterModeChange, onGroupFocus,
+}: SidebarProps) {
     const [query, setQuery] = useState("");
     const [showResults, setShowResults] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
-    const toggle = (college: string) => {
-        const next = new Set(enabledColleges);
-        next.has(college) ? next.delete(college) : next.add(college);
-        onCollegeFilterChange(next);
-    };
-
-    const toggleAll = (on: boolean) => {
-        onCollegeFilterChange(on ? new Set(colleges) : new Set());
-    };
-
-    const results = query.trim().length > 0
-        ? nodes
-            .filter((n) => n.id.toLowerCase().includes(query.toLowerCase()))
-            .slice(0, 8)
-        : [];
-
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+            if (searchRef.current && !searchRef.current.contains(e.target as globalThis.Node)) {
                 setShowResults(false);
             }
         };
@@ -42,10 +40,79 @@ export default function Sidebar({ colleges, enabledColleges, onCollegeFilterChan
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    const results = query.trim().length > 0
+        ? nodes.filter((n) => n.id.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+        : [];
+
     const handleSelect = (nodeId: string) => {
         onNodeFocus(nodeId);
         setQuery(nodeId);
         setShowResults(false);
+    };
+
+    const makeToggle = (enabled: Set<string>, onChange: (s: Set<string>) => void) =>
+        (item: string) => {
+            const next = new Set(enabled);
+            next.has(item) ? next.delete(item) : next.add(item);
+            onChange(next);
+        };
+
+    const makeToggleAll = (items: string[], onChange: (s: Set<string>) => void) =>
+        (on: boolean) => onChange(on ? new Set(items) : new Set());
+
+    const renderFilterList = (
+        items: string[],
+        enabled: Set<string>,
+        onChange: (s: Set<string>) => void,
+        mode: ClusterMode
+    ) => {
+        const toggle = makeToggle(enabled, onChange);
+        const toggleAll = makeToggleAll(items, onChange);
+
+        return (
+            <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#aaa" }}>
+                        {mode === "college" ? "Colleges" : mode === "department" ? "Departments" : "Subjects"}
+                    </span>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                        <button onClick={() => toggleAll(true)} style={btnStyle}>All</button>
+                        <button onClick={() => toggleAll(false)} style={btnStyle}>None</button>
+                    </div>
+                </div>
+                {items.map((item) => {
+                    const active = enabled.has(item);
+                    return (
+                        <div key={item} style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "5px 4px",
+                            borderRadius: "4px",
+                            opacity: active ? 1 : 0.4,
+                            transition: "opacity 0.15s, background 0.15s",
+                        }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "#2a2a4a")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={active}
+                                onChange={() => toggle(item)}
+                                style={{ accentColor: getCollegeColor(item), cursor: "pointer", flexShrink: 0 }}
+                            />
+                            <span
+                                onClick={() => onGroupFocus(mode, item)}
+                                style={{ fontSize: "12px", lineHeight: 1.3, cursor: "pointer", flex: 1 }}
+                                title={`Zoom to ${item}`}
+                            >
+                                {item}
+                            </span>
+                        </div>
+                    );
+                })}
+            </>
+        );
     };
 
     return (
@@ -115,8 +182,7 @@ export default function Sidebar({ colleges, enabledColleges, onCollegeFilterChan
                             >
                                 <div style={{
                                     width: "8px", height: "8px",
-                                    borderRadius: "50%",
-                                    flexShrink: 0,
+                                    borderRadius: "50%", flexShrink: 0,
                                     background: getCollegeColor(n.college),
                                 }} />
                                 <span style={{ fontWeight: 600 }}>{n.id}</span>
@@ -127,54 +193,43 @@ export default function Sidebar({ colleges, enabledColleges, onCollegeFilterChan
                 )}
             </div>
 
-            {/* College filter */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
-                <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "10px",
-                }}>
-                    <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#aaa" }}>
-                        Colleges
-                    </span>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                        <button onClick={() => toggleAll(true)} style={btnStyle}>All</button>
-                        <button onClick={() => toggleAll(false)} style={btnStyle}>None</button>
-                    </div>
+            {/* Cluster mode dropdown */}
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #2e2e4d" }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#aaa", marginBottom: "6px" }}>
+                    Cluster By
                 </div>
+                <select
+                    value={clusterMode}
+                    onChange={(e) => onClusterModeChange(e.target.value as ClusterMode)}
+                    style={{
+                        width: "100%",
+                        padding: "7px 10px",
+                        borderRadius: "5px",
+                        border: "1px solid #3a3a5c",
+                        background: "#12122a",
+                        color: "#f0f0f0",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        outline: "none",
+                    }}
+                >
+                    <option value="connectivity">Connectivity</option>
+                    <option value="college">College</option>
+                    <option value="department">Department</option>
+                    <option value="subject">Subject</option>
+                </select>
+            </div>
 
-                {colleges.map((college) => {
-                    const active = enabledColleges.has(college);
-                    return (
-                        <label key={college} style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            padding: "5px 4px",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            opacity: active ? 1 : 0.4,
-                            transition: "opacity 0.15s, background 0.15s",
-                        }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "#2a2a4a")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                        >
-                            <input
-                                type="checkbox"
-                                checked={active}
-                                onChange={() => toggle(college)}
-                                style={{ accentColor: getCollegeColor(college), cursor: "pointer" }}
-                            />
-                            <div style={{
-                                width: "10px", height: "10px",
-                                borderRadius: "2px", flexShrink: 0,
-                                background: getCollegeColor(college),
-                            }} />
-                            <span style={{ fontSize: "12px", lineHeight: 1.3 }}>{college}</span>
-                        </label>
-                    );
-                })}
+            {/* Filter list — changes based on cluster mode */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+                {clusterMode === "connectivity" && (
+                    <div style={{ fontSize: "12px", color: "#666", textAlign: "center", marginTop: "20px" }}>
+                        Select a cluster mode to filter by group.
+                    </div>
+                )}
+                {clusterMode === "college" && renderFilterList(colleges, enabledColleges, onCollegeFilterChange, "college")}
+                {clusterMode === "department" && renderFilterList(departments, enabledDepartments, onDepartmentFilterChange, "department")}
+                {clusterMode === "subject" && renderFilterList(subjects, enabledSubjects, onSubjectFilterChange, "subject")}
             </div>
         </div>
     );
