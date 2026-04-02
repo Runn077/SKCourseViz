@@ -3,7 +3,7 @@ import Sigma from "sigma";
 import Graph from "graphology";
 import FA2Layout from "graphology-layout-forceatlas2/worker";
 import { getCollegeColor } from "../utils/collegeColor";
-import type { ClusterMode, CourseNode } from "../types";
+import type { ClusterMode, CourseNode } from "../types/index";
 
 type Props = {
     nodes: CourseNode[];
@@ -16,16 +16,19 @@ type Props = {
     onNodeDoubleClick: (nodeId: string) => void;
 };
 
-// Assign initial positions based on cluster group
-function getInitialPositions(
+function getTargetPositions(
     nodes: CourseNode[],
     clusterMode: ClusterMode
 ): Map<string, { x: number; y: number }> {
     const positions = new Map<string, { x: number; y: number }>();
 
     if (clusterMode === "connectivity") {
+        // For connectivity, spread randomly — FA2 will take over
         nodes.forEach((n) => {
-            positions.set(n.id, { x: Math.random(), y: Math.random() });
+            positions.set(n.id, {
+                x: (Math.random() - 0.5) * 10,
+                y: (Math.random() - 0.5) * 10,
+            });
         });
         return positions;
     }
@@ -36,7 +39,6 @@ function getInitialPositions(
         return n.subject_code;
     };
 
-    // Group nodes
     const groups = new Map<string, CourseNode[]>();
     nodes.forEach((n) => {
         const group = getGroup(n);
@@ -47,32 +49,22 @@ function getInitialPositions(
     const groupList = [...groups.keys()];
     const totalGroups = groupList.length;
 
-    // Calculate the radius each group needs based on its node count
     const groupRadii = new Map<string, number>();
     groups.forEach((groupNodes, group) => {
-        // Radius needed to fit all nodes in a spiral without overlap
-        groupRadii.set(group, Math.sqrt(groupNodes.length) * 1.2 + 2); 
+        groupRadii.set(group, Math.sqrt(groupNodes.length) * 1.2 + 2);
     });
 
-    // Place groups on a circle large enough so no two groups overlap
-    // The minimum distance between two group centers = sum of their radii + padding
     const maxGroupRadius = Math.max(...groupRadii.values());
-    
-    // Use a large enough outer radius so adjacent groups don't touch
-    // circumference must fit totalGroups * (2 * maxGroupRadius + padding)
     const padding = 8;
     const minCircumference = totalGroups * (2 * maxGroupRadius + padding);
     const outerRadius = minCircumference / (2 * Math.PI);
-
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
     groupList.forEach((group, i) => {
         const groupNodes = groups.get(group)!;
         const angle = (i / totalGroups) * 2 * Math.PI;
-
         const cx = Math.cos(angle) * outerRadius;
         const cy = Math.sin(angle) * outerRadius;
-
         const nodeSpread = groupRadii.get(group)!;
 
         groupNodes.forEach((n, j) => {
@@ -88,29 +80,67 @@ function getInitialPositions(
     return positions;
 }
 
+function animatePositions(
+    graph: Graph,
+    targetPositions: Map<string, { x: number; y: number }>,
+    sigma: Sigma,
+    duration: number,
+    onComplete: () => void
+) {
+    const startPositions = new Map<string, { x: number; y: number }>();
+    graph.forEachNode((node) => {
+        startPositions.set(node, {
+            x: graph.getNodeAttribute(node, "x"),
+            y: graph.getNodeAttribute(node, "y"),
+        });
+    });
+
+    const startTime = performance.now();
+
+    const frame = () => {
+        const elapsed = performance.now() - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        graph.forEachNode((node) => {
+            const start = startPositions.get(node);
+            const target = targetPositions.get(node);
+            if (!start || !target) return;
+            graph.setNodeAttribute(node, "x", start.x + (target.x - start.x) * eased);
+            graph.setNodeAttribute(node, "y", start.y + (target.y - start.y) * eased);
+        });
+
+        sigma.refresh();
+
+        if (t < 1) {
+            requestAnimationFrame(frame);
+        } else {
+            onComplete();
+        }
+    };
+
+    requestAnimationFrame(frame);
+}
+
 function GraphComponent({
-    nodes,
-    edges,
-    enabledColleges,
-    visibleNodeIds,
-    focusNode,
-    focusGroup,
-    clusterMode,
-    onNodeDoubleClick,
+    nodes, edges, enabledColleges, visibleNodeIds,
+    focusNode, focusGroup, clusterMode, onNodeDoubleClick,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<Sigma | null>(null);
+    const graphRef = useRef<Graph | null>(null);
     const enabledCollegesRef = useRef<Set<string>>(enabledColleges);
     const visibleNodeIdsRef = useRef<Set<string>>(visibleNodeIds);
     const highlightedNodeRef = useRef<string | null>(null);
     const onNodeDoubleClickRef = useRef(onNodeDoubleClick);
     const layoutRef = useRef<FA2Layout | null>(null);
+    const clusterModeRef = useRef<ClusterMode>(clusterMode);
 
     useEffect(() => {
         onNodeDoubleClickRef.current = onNodeDoubleClick;
     }, [onNodeDoubleClick]);
 
-    // Rebuild graph when nodes, edges, or clusterMode changes
+    // Build Sigma once
     useEffect(() => {
         if (!containerRef.current) return;
         const container = containerRef.current;
@@ -118,20 +148,15 @@ function GraphComponent({
         const build = () => {
             if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
 
-            // Kill previous layout and renderer
-            if (layoutRef.current) {
-                layoutRef.current.kill();
-                layoutRef.current = null;
-            }
-            if (rendererRef.current) {
-                rendererRef.current.kill();
-                rendererRef.current = null;
-            }
+            if (layoutRef.current) { layoutRef.current.kill(); layoutRef.current = null; }
+            if (rendererRef.current) { rendererRef.current.kill(); rendererRef.current = null; }
 
             highlightedNodeRef.current = null;
 
             const graph = new Graph();
-            const positions = getInitialPositions(nodes, clusterMode);
+            graphRef.current = graph;
+
+            const positions = getTargetPositions(nodes, clusterModeRef.current);
 
             nodes.forEach((node) => {
                 if (!graph.hasNode(node.id)) {
@@ -221,124 +246,122 @@ function GraphComponent({
 
             rendererRef.current = sigma;
 
-            if (clusterMode === "connectivity") {
-                const layout = new FA2Layout(graph, {
-                    settings: {
-                        gravity: 1,
-                        scalingRatio: 10,
-                        slowDown: 10,
-                        barnesHutOptimize: true,
-                    },
-                });
-                layout.start();
-                layoutRef.current = layout;
-                setTimeout(() => {
-                    layout.stop();
-                    sigma.refresh();
-                }, 8000);
-            } else {
-                // Store edges temporarily
-                const storedEdges: { source: string; target: string; attributes: any }[] = [];
-                graph.forEachEdge((edge, attributes, source, target) => {
-                    storedEdges.push({ source, target, attributes });
-                });
-
-                // Remove all edges so ForceAtlas2 only uses gravity, no edge pulling
-                graph.clearEdges();
-
-                const layout = new FA2Layout(graph, {
-                    settings: {
-                        gravity: 10,
-                        scalingRatio: 2,
-                        slowDown: 5,
-                        barnesHutOptimize: true,
-                        adjustSizes: true,
-                    },
-                });
-                layout.start();
-                layoutRef.current = layout;
-
-                setTimeout(() => {
-                    layout.stop();
-
-                    // Restore edges after layout settles
-                    storedEdges.forEach(({ source, target, attributes }) => {
-                        if (graph.hasNode(source) && graph.hasNode(target) && !graph.hasEdge(source, target)) {
-                            graph.addEdge(source, target, attributes);
-                        }
-                    });
-
-                    sigma.refresh();
-                }, 2000);
-            }
+            // Initial layout
+            startLayout(graph, sigma, clusterModeRef.current);
         };
 
-        // If container already has size, build immediately
         if (container.offsetWidth > 0 && container.offsetHeight > 0) {
             build();
         } else {
-            const resizeObserver = new ResizeObserver(() => {
+            const ro = new ResizeObserver(() => {
                 if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
-                resizeObserver.disconnect();
+                ro.disconnect();
                 build();
             });
-            resizeObserver.observe(container);
-            return () => resizeObserver.disconnect();
+            ro.observe(container);
+            return () => ro.disconnect();
         }
 
         return () => {
-            if (layoutRef.current) {
-                layoutRef.current.kill();
-                layoutRef.current = null;
-            }
-            if (rendererRef.current) {
-                rendererRef.current.kill();
-                rendererRef.current = null;
-            }
+            if (layoutRef.current) { layoutRef.current.kill(); layoutRef.current = null; }
+            if (rendererRef.current) { rendererRef.current.kill(); rendererRef.current = null; }
         };
-    }, [nodes, edges, clusterMode]);
+    }, [nodes, edges]);
 
-    // Sync visible nodes without rebuilding
+    // Handle cluster mode changes with animation — no Sigma rebuild
+    useEffect(() => {
+        clusterModeRef.current = clusterMode;
+        const sigma = rendererRef.current;
+        const graph = graphRef.current;
+        if (!sigma || !graph) return;
+
+        // Stop any running layout
+        if (layoutRef.current) { layoutRef.current.kill(); layoutRef.current = null; }
+
+        const targetPositions = getTargetPositions(nodes, clusterMode);
+
+        // Animate nodes to their new positions
+        animatePositions(graph, targetPositions, sigma, 1000, () => {
+            // After animation, run layout pass
+            startLayout(graph, sigma, clusterMode);
+        });
+    }, [clusterMode]);
+
+    function startLayout(graph: Graph, sigma: Sigma, mode: ClusterMode) {
+        if (mode === "connectivity") {
+            const layout = new FA2Layout(graph, {
+                settings: {
+                    gravity: 1,
+                    scalingRatio: 10,
+                    slowDown: 10,
+                    barnesHutOptimize: true,
+                },
+            });
+            layout.start();
+            layoutRef.current = layout;
+            setTimeout(() => { layout.stop(); sigma.refresh(); }, 8000);
+        } else {
+            // Remove edges, run brief gravity-only pass, restore edges
+            const storedEdges: { source: string; target: string; attributes: any }[] = [];
+            graph.forEachEdge((edge, attributes, source, target) => {
+                storedEdges.push({ source, target, attributes });
+            });
+            graph.clearEdges();
+
+            const layout = new FA2Layout(graph, {
+                settings: {
+                    gravity: 10,
+                    scalingRatio: 2,
+                    slowDown: 5,
+                    barnesHutOptimize: true,
+                },
+            });
+            layout.start();
+            layoutRef.current = layout;
+
+            setTimeout(() => {
+                layout.stop();
+                storedEdges.forEach(({ source, target, attributes }) => {
+                    if (graph.hasNode(source) && graph.hasNode(target) && !graph.hasEdge(source, target)) {
+                        graph.addEdge(source, target, attributes);
+                    }
+                });
+                sigma.refresh();
+            }, 2000);
+        }
+    }
+
     useEffect(() => {
         visibleNodeIdsRef.current = visibleNodeIds;
         rendererRef.current?.refresh();
     }, [visibleNodeIds]);
 
-    // Sync enabled colleges without rebuilding
     useEffect(() => {
         enabledCollegesRef.current = enabledColleges;
         rendererRef.current?.refresh();
     }, [enabledColleges]);
 
-    // Zoom to a specific node
     useEffect(() => {
-        if (!focusNode || !rendererRef.current) return;
+        if (!focusNode || !rendererRef.current || !graphRef.current) return;
         const sigma = rendererRef.current;
-        const graph = sigma.getGraph();
+        const graph = graphRef.current;
         if (!graph.hasNode(focusNode)) return;
-
         highlightedNodeRef.current = focusNode;
         sigma.refresh();
-
-        // Use graph coordinates directly
         const x = graph.getNodeAttribute(focusNode, "x");
         const y = graph.getNodeAttribute(focusNode, "y");
-
         const { x: vx, y: vy } = sigma.graphToViewport({ x, y });
         const framedPos = sigma.viewportToFramedGraph({ x: vx, y: vy });
-
         sigma.getCamera().animate(
             { x: framedPos.x, y: framedPos.y, ratio: 0.05 },
             { duration: 500 }
         );
     }, [focusNode]);
 
-    // Zoom to a group cluster center
     useEffect(() => {
-        if (!focusGroup || !rendererRef.current) return;
+        if (!focusGroup || !rendererRef.current || !graphRef.current) return;
         const sigma = rendererRef.current;
-        const graph = sigma.getGraph();
-
+        const graph = graphRef.current;
         const { mode, value } = focusGroup;
 
         const getGroup = (nodeId: string) => {
@@ -347,7 +370,6 @@ function GraphComponent({
             return graph.getNodeAttribute(nodeId, "subject_code");
         };
 
-        // Use graph coordinates (x, y attributes) not display coordinates
         const groupNodes = graph.nodes().filter((n) => getGroup(n) === value);
         if (groupNodes.length === 0) return;
 
@@ -360,16 +382,12 @@ function GraphComponent({
 
         if (count === 0) return;
 
-        // Convert graph coordinates to viewport coordinates
-        const { x, y } = sigma.graphToViewport({ x: sumX / count, y: sumY / count });
-        const viewportCenter = sigma.viewportToFramedGraph({ x, y });
-
-        // Calculate zoom ratio based on group size
-        const groupSize = groupNodes.length;
-        const ratio = Math.max(0.05, Math.min(0.5, groupSize / (nodes.length * 0.8)));
+        const { x: vx, y: vy } = sigma.graphToViewport({ x: sumX / count, y: sumY / count });
+        const framedPos = sigma.viewportToFramedGraph({ x: vx, y: vy });
+        const ratio = Math.max(0.05, Math.min(0.5, groupNodes.length / (nodes.length * 0.8)));
 
         sigma.getCamera().animate(
-            { x: viewportCenter.x, y: viewportCenter.y, ratio },
+            { x: framedPos.x, y: framedPos.y, ratio },
             { duration: 600 }
         );
     }, [focusGroup]);
