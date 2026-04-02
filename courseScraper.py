@@ -52,8 +52,60 @@ def fetch_subjects():
     subjects = [option['value'] for option in select.find_all("option") if option['value']]
     return subjects
 
+def get_course_details(courseCode):
+    url = f"https://catalogue.usask.ca/{courseCode}"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    subject_name = ""
+    credits = ""
+    offered = ""
+    weekly_hours = ""
+    college = ""
+    department = ""
+
+    section = soup.find("section", class_="uofs-section")
+    if section:
+        p = section.find("p")
+        if p:
+            for strong in p.find_all("strong"):
+                label = strong.get_text(strip=True)
+
+                value = ""
+                if strong.next_sibling:
+                    value = str(strong.next_sibling).strip()
+
+                if "Subject" in label:
+                    a = strong.find_next("a")
+                    if a:
+                        subject_name = a.get_text(strip=True)
+
+                elif "Credit units" in label:
+                    credits = value
+
+                elif "Offered" in label:
+                    offered = value
+
+                elif "Weekly hours" in label:
+                    weekly_hours = value
+
+                elif "College" in label:
+                    college = value
+
+                elif "Department" in label:
+                    department = value
+
+    return {
+        "subject": subject_name,
+        "credits": credits,
+        "offered": offered,
+        "weekly_hours": weekly_hours,
+        "college": college,
+        "department": department
+    }
 
 def fetch_courses(courseSubject):
+    seen_classes = set()
     url = f"https://catalogue.usask.ca/?subj_code={courseSubject}&cnum="
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
@@ -92,35 +144,50 @@ def fetch_courses(courseSubject):
                 notes = list_to_text(pTagList)
                 prerequisite = findPrereq(pTagList)
 
+        course_code = f"{courseSubject}-{number}"
+
+        if name in seen_classes:
+            continue
+        seen_classes.add(name)
+
+        details = get_course_details(course_code)
+
         courses.append({
             'title': title,
-            'subject': courseSubject,
+            'subject_code': courseSubject,
             'number': int(number),
             'class_name': name,
             'description': description,
             'notes': notes,
             'prerequisite': prerequisite,
-            "link": f"https://catalogue.usask.ca/{courseSubject}-{number}"
+            "link": f"https://catalogue.usask.ca/{course_code}",
+
+            # merge details
+            "subject": details["subject"],
+            "credits": details["credits"],
+            "offered": details["offered"],
+            "weekly_hours": details["weekly_hours"],
+            "college": details["college"],
+            "department": details["department"]
         })
 
     return courses
 
-
 def main():
     all_courses = []
 
-    subjects = fetch_subjects()
+    subjects = ["CMPT"] #fetch_subjects()
 
-    for subject in subjects:
-        print(f"Scraping {subject}...")
-        courses = fetch_courses(subject)
+    for subject_code in subjects:
+        print(f"Scraping {subject_code}...")
+        courses = fetch_courses(subject_code)
         all_courses.extend(courses)
 
-    with open("courses.json", "w", encoding="utf-8") as f:
+    with open("test.json", "w", encoding="utf-8") as f:
         json.dump(all_courses, f, ensure_ascii=False, indent=2)
 
     print(f"Saved {len(all_courses)} courses to courses.json")
-
+    
 
 if __name__ == "__main__":
     main()
