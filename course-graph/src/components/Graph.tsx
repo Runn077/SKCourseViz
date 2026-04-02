@@ -100,7 +100,10 @@ function GraphComponent({ nodes, edges, enabledColleges, focusNode, onNodeDouble
                 },
             });
 
+            let isDoubleClick = false;
+
             sigma.on("clickNode", ({ node }) => {
+                if (isDoubleClick) return;
                 highlightedNodeRef.current =
                     highlightedNodeRef.current === node ? null : node;
                 sigma.refresh();
@@ -112,8 +115,12 @@ function GraphComponent({ nodes, edges, enabledColleges, focusNode, onNodeDouble
             });
 
             sigma.on("doubleClickNode", ({ node, event }) => {
-                event.preventSigmaDefault(); // stops sigma from zooming in on double click
+                event.preventSigmaDefault();
+                isDoubleClick = true;
+                highlightedNodeRef.current = node;
+                sigma.refresh();
                 onNodeDoubleClickRef.current(node);
+                setTimeout(() => { isDoubleClick = false; }, 300);
             });
 
             rendererRef.current = sigma;
