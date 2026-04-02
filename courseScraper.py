@@ -2,6 +2,7 @@ import requests
 import json
 import os
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
 
 
@@ -111,6 +112,8 @@ def fetch_courses(courseSubject):
     soup = BeautifulSoup(response.text, "html.parser")
 
     courses = []
+    detail_jobs = []
+
     course_elements = soup.find_all('div')
 
     for course in course_elements:
@@ -118,12 +121,16 @@ def fetch_courses(courseSubject):
             continue
         elif course.find('h4').find('a') is None:
             continue
-        else:
-            rawTitle = course.find('h4').find('a').text
-            title = rawTitle.strip()
+
+        rawTitle = course.find('h4').find('a').text
+        title = rawTitle.strip()
 
         number = get_class_num(title)
         name = courseSubject + number
+
+        if name in seen_classes:
+            continue
+        seen_classes.add(name)
 
         description = ""
         notes = ""
@@ -135,7 +142,6 @@ def fetch_courses(courseSubject):
             if divCol:
                 description = divCol.find('p').text
 
-        if divRow:
             colPrereq = divRow.find('div', class_='col-md-5')
             if colPrereq:
                 pTag = colPrereq.find('p')
@@ -146,12 +152,6 @@ def fetch_courses(courseSubject):
 
         course_code = f"{courseSubject}-{number}"
 
-        if name in seen_classes:
-            continue
-        seen_classes.add(name)
-
-        details = get_course_details(course_code)
-
         courses.append({
             'title': title,
             'subject_code': courseSubject,
@@ -161,22 +161,28 @@ def fetch_courses(courseSubject):
             'notes': notes,
             'prerequisite': prerequisite,
             "link": f"https://catalogue.usask.ca/{course_code}",
-
-            # merge details
-            "subject": details["subject"],
-            "credits": details["credits"],
-            "offered": details["offered"],
-            "weekly_hours": details["weekly_hours"],
-            "college": details["college"],
-            "department": details["department"]
+            "course_code": course_code   # store temporarily
         })
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        future_to_course = {
+            executor.submit(get_course_details, c["course_code"]): c
+            for c in courses
+        }
+
+        for future in as_completed(future_to_course):
+            course = future_to_course[future]
+            details = future.result()
+
+            course.update(details)
+            del course["course_code"]
 
     return courses
 
 def main():
     all_courses = []
 
-    subjects = ["CMPT"] #fetch_subjects()
+    subjects = fetch_subjects()
 
     for subject_code in subjects:
         print(f"Scraping {subject_code}...")
