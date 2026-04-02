@@ -9,13 +9,18 @@ type Props = {
     edges: { source: string; target: string }[];
     enabledColleges: Set<string>;
     focusNode: string | null;
+    onNodeDoubleClick: (nodeId: string) => void;
 };
 
-function GraphComponent({ nodes, edges, enabledColleges, focusNode }: Props) {
+function GraphComponent({ nodes, edges, enabledColleges, focusNode, onNodeDoubleClick }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<Sigma | null>(null);
     const enabledCollegesRef = useRef<Set<string>>(enabledColleges);
     const highlightedNodeRef = useRef<string | null>(null);
+    const onNodeDoubleClickRef = useRef(onNodeDoubleClick);
+    useEffect(() => {
+        onNodeDoubleClickRef.current = onNodeDoubleClick;
+    }, [onNodeDoubleClick]);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -104,6 +109,11 @@ function GraphComponent({ nodes, edges, enabledColleges, focusNode }: Props) {
             sigma.on("clickStage", () => {
                 highlightedNodeRef.current = null;
                 sigma.refresh();
+            });
+
+            sigma.on("doubleClickNode", ({ node, event }) => {
+                event.preventSigmaDefault(); // stops sigma from zooming in on double click
+                onNodeDoubleClickRef.current(node);
             });
 
             rendererRef.current = sigma;

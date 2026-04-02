@@ -2,11 +2,13 @@ import { useEffect, useState, useMemo } from "react";
 import GraphComponent from "../components/Graph";
 import Sidebar from "../components/Sidebar";
 import Legend from "../components/Legend";
+import CourseModal from "../components/CourseModal";
 
 function GraphPage() {
     const [courses, setCourses] = useState<any[]>([]);
     const [enabledColleges, setEnabledColleges] = useState<Set<string> | null>(null);
     const [focusNode, setFocusNode] = useState<string | null>(null);
+    const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
     useEffect(() => {
         fetch("./data/courses.json")
@@ -30,7 +32,12 @@ function GraphPage() {
     const colleges = useMemo(() =>
         [...new Set(allNodes.map((n) => n.college))].sort()
     , [allNodes]);
+
     const activeColleges = enabledColleges ?? new Set(colleges);
+
+    const selectedCourse = useMemo(() =>
+        courses.find((c) => c.class_name === selectedCourseId) ?? null
+    , [courses, selectedCourseId]);
 
     if (courses.length === 0) return <div>Loading...</div>;
 
@@ -49,9 +56,16 @@ function GraphPage() {
                     edges={allEdges}
                     enabledColleges={activeColleges}
                     focusNode={focusNode}
+                    onNodeDoubleClick={setSelectedCourseId}
                 />
                 <Legend colleges={colleges} />
             </div>
+            {selectedCourse && (
+                <CourseModal
+                    course={selectedCourse}
+                    onClose={() => setSelectedCourseId(null)}
+                />
+            )}
         </div>
     );
 }
