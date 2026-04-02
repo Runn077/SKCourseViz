@@ -373,21 +373,48 @@ function GraphComponent({
         const groupNodes = graph.nodes().filter((n) => getGroup(n) === value);
         if (groupNodes.length === 0) return;
 
-        let sumX = 0, sumY = 0, count = 0;
+        // Calculate bounding box of the group in graph coordinates
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+
         groupNodes.forEach((n) => {
-            sumX += graph.getNodeAttribute(n, "x");
-            sumY += graph.getNodeAttribute(n, "y");
-            count++;
+            const x = graph.getNodeAttribute(n, "x");
+            const y = graph.getNodeAttribute(n, "y");
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
         });
 
-        if (count === 0) return;
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
 
-        const { x: vx, y: vy } = sigma.graphToViewport({ x: sumX / count, y: sumY / count });
+        // Convert center to framed graph coordinates
+        const { x: vx, y: vy } = sigma.graphToViewport({ x: centerX, y: centerY });
         const framedPos = sigma.viewportToFramedGraph({ x: vx, y: vy });
-        const ratio = Math.max(0.05, Math.min(0.5, groupNodes.length / (nodes.length * 0.8)));
+
+        // Calculate ratio based on bounding box size relative to the viewport
+        const camera = sigma.getCamera();
+        const viewportDimensions = sigma.getDimensions();
+        const graphWidth = maxX - minX;
+        const graphHeight = maxY - minY;
+
+        // How much of the graph space does this cluster take up
+        const graphBounds = sigma.getBBox();
+        const totalGraphWidth = graphBounds.x[1] - graphBounds.x[0];
+        const totalGraphHeight = graphBounds.y[1] - graphBounds.y[0];
+
+        // Fraction of total graph this cluster occupies
+        const widthFraction = (graphWidth + 10) / totalGraphWidth;
+        const heightFraction = (graphHeight + 10) / totalGraphHeight;
+
+        // Use the larger fraction with padding
+        // Higher fraction = bigger cluster = higher ratio = more zoomed out
+        const fraction = Math.max(widthFraction, heightFraction);
+        const clampedRatio = Math.max(0.02, Math.min(1.5, fraction * 1.4));
 
         sigma.getCamera().animate(
-            { x: framedPos.x, y: framedPos.y, ratio },
+            { x: framedPos.x, y: framedPos.y, ratio: clampedRatio },
             { duration: 600 }
         );
     }, [focusGroup]);
