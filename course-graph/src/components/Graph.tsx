@@ -8,9 +8,10 @@ type Props = {
     nodes: { id: string; label: string; college: string }[];
     edges: { source: string; target: string }[];
     enabledColleges: Set<string>;
+    focusNode: string | null;
 };
 
-function GraphComponent({ nodes, edges, enabledColleges }: Props) {
+function GraphComponent({ nodes, edges, enabledColleges, focusNode }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<Sigma | null>(null);
     const enabledCollegesRef = useRef<Set<string>>(enabledColleges);
@@ -66,16 +67,11 @@ function GraphComponent({ nodes, edges, enabledColleges }: Props) {
                     if (!enabledCollegesRef.current.has(college)) {
                         return { ...data, hidden: true };
                     }
-
                     const highlighted = highlightedNodeRef.current;
                     if (highlighted === null) return data;
-
-                    // Keep the clicked node and its neighbors fully visible
                     if (node === highlighted || graph.neighbors(highlighted).includes(node)) {
                         return { ...data, zIndex: 1 };
                     }
-
-                    // Dim everything else
                     return { ...data, color: "#e0e0e0", zIndex: 0 };
                 },
 
@@ -84,34 +80,27 @@ function GraphComponent({ nodes, edges, enabledColleges }: Props) {
                     const target = graph.target(edge);
                     const sourceCollege = graph.getNodeAttribute(source, "college");
                     const targetCollege = graph.getNodeAttribute(target, "college");
-
                     if (
                         !enabledCollegesRef.current.has(sourceCollege) ||
                         !enabledCollegesRef.current.has(targetCollege)
                     ) {
                         return { ...data, hidden: true };
                     }
-
                     const highlighted = highlightedNodeRef.current;
                     if (highlighted === null) return data;
-
-                    // Only show edges connected to the highlighted node
                     if (source === highlighted || target === highlighted) {
                         return { ...data, color: "#555", size: 1.5, zIndex: 1 };
                     }
-
                     return { ...data, hidden: true };
                 },
             });
 
-            // Click a node highlight it
             sigma.on("clickNode", ({ node }) => {
                 highlightedNodeRef.current =
-                    highlightedNodeRef.current === node ? null : node; // toggle off if clicked again
+                    highlightedNodeRef.current === node ? null : node;
                 sigma.refresh();
             });
 
-            // Click the background → clear highlight
             sigma.on("clickStage", () => {
                 highlightedNodeRef.current = null;
                 sigma.refresh();
@@ -122,13 +111,13 @@ function GraphComponent({ nodes, edges, enabledColleges }: Props) {
             const layout = new FA2Layout(graph, {
                 settings: {
                     gravity: 1,
-                    scalingRatio: 10,  
+                    scalingRatio: 10,
                     slowDown: 10,
-                    barnesHutOptimize: true, 
+                    barnesHutOptimize: true,
                 },
             });
             layout.start();
-            setTimeout(() => layout.stop(), 8000); 
+            setTimeout(() => layout.stop(), 8000);
         });
 
         resizeObserver.observe(container);
@@ -146,6 +135,28 @@ function GraphComponent({ nodes, edges, enabledColleges }: Props) {
         enabledCollegesRef.current = enabledColleges;
         rendererRef.current?.refresh();
     }, [enabledColleges]);
+
+    // Zoom to node when focusNode changes
+    useEffect(() => {
+        if (!focusNode || !rendererRef.current) return;
+        const sigma = rendererRef.current;
+        const graph = sigma.getGraph();
+
+        if (!graph.hasNode(focusNode)) return;
+
+        // Highlight the node
+        highlightedNodeRef.current = focusNode;
+        sigma.refresh();
+
+        // Animate camera to the node's position
+        const nodePosition = sigma.getNodeDisplayData(focusNode);
+        if (!nodePosition) return;
+
+        sigma.getCamera().animate(
+            { x: nodePosition.x, y: nodePosition.y, ratio: 0.05 },
+            { duration: 500 }
+        );
+    }, [focusNode]);
 
     return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 }
