@@ -17,6 +17,7 @@ function GraphPage() {
     const nodes = courses.map((c) => ({
         id: c.class_name,
         label: c.class_name,
+        college: c.college
     }));
 
     // Convert courses to edges (prereqs)
