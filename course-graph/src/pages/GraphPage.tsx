@@ -21,6 +21,24 @@ function GraphPage() {
             .then((data) => setCourses(data));
     }, []);
 
+    const departmentToColleges = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    courses.forEach((c) => {
+        if (!map.has(c.department)) map.set(c.department, new Set());
+        map.get(c.department)!.add(c.college);
+    });
+    return map;
+}, [courses]);
+
+const subjectToColleges = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    courses.forEach((c) => {
+        if (!map.has(c.subject_code)) map.set(c.subject_code, new Set());
+        map.get(c.subject_code)!.add(c.college);
+    });
+    return map;
+}, [courses]);
+
     const allNodes: CourseNode[] = useMemo(() => courses.map((c) => ({
         id: c.class_name,
         label: c.class_name,
@@ -88,6 +106,8 @@ function GraphPage() {
                 clusterMode={clusterMode}
                 onClusterModeChange={setClusterMode}
                 onGroupFocus={(mode, value) => setFocusGroup({ mode, value })}
+                departmentToColleges={departmentToColleges}
+                subjectToColleges={subjectToColleges}
             />
             <div style={{ flex: 1, height: "100%", position: "relative" }}>
                 <GraphComponent

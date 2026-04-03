@@ -17,6 +17,8 @@ type SidebarProps = {
     clusterMode: ClusterMode;
     onClusterModeChange: (mode: ClusterMode) => void;
     onGroupFocus: (mode: ClusterMode, value: string) => void;
+    departmentToColleges: Map<string, Set<string>>;
+    subjectToColleges: Map<string, Set<string>>;
 };
 
 export default function Sidebar({
@@ -25,6 +27,7 @@ export default function Sidebar({
     onCollegeFilterChange, onDepartmentFilterChange, onSubjectFilterChange,
     nodes, onNodeFocus,
     clusterMode, onClusterModeChange, onGroupFocus,
+    departmentToColleges, subjectToColleges,
 }: SidebarProps) {
     const [query, setQuery] = useState("");
     const [showResults, setShowResults] = useState(false);
@@ -64,7 +67,8 @@ export default function Sidebar({
         items: string[],
         enabled: Set<string>,
         onChange: (s: Set<string>) => void,
-        mode: ClusterMode
+        mode: ClusterMode,
+        colorLookup?: Map<string, Set<string>>
     ) => {
         const toggle = makeToggle(enabled, onChange);
         const toggleAll = makeToggleAll(items, onChange);
@@ -82,6 +86,11 @@ export default function Sidebar({
                 </div>
                 {items.map((item) => {
                     const active = enabled.has(item);
+                    const colleges = colorLookup
+                        ? [...colorLookup.get(item) ?? []]
+                        : [item];
+                    const colors = colleges.map((c) => getCollegeColor(c));
+
                     return (
                         <div key={item} style={{
                             display: "flex",
@@ -99,8 +108,19 @@ export default function Sidebar({
                                 type="checkbox"
                                 checked={active}
                                 onChange={() => toggle(item)}
-                                style={{ accentColor: getCollegeColor(item), cursor: "pointer", flexShrink: 0 }}
+                                style={{ accentColor: colors[0], cursor: "pointer", flexShrink: 0 }}
                             />
+                            {/* Render one color swatch per college */}
+                            <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
+                                {colors.map((color, i) => (
+                                    <div key={i} style={{
+                                        width: "10px",
+                                        height: "10px",
+                                        borderRadius: "2px",
+                                        background: color,
+                                    }} />
+                                ))}
+                            </div>
                             <span
                                 onClick={() => onGroupFocus(mode, item)}
                                 style={{ fontSize: "12px", lineHeight: 1.3, cursor: "pointer", flex: 1 }}
@@ -228,8 +248,8 @@ export default function Sidebar({
                     </div>
                 )}
                 {clusterMode === "college" && renderFilterList(colleges, enabledColleges, onCollegeFilterChange, "college")}
-                {clusterMode === "department" && renderFilterList(departments, enabledDepartments, onDepartmentFilterChange, "department")}
-                {clusterMode === "subject" && renderFilterList(subjects, enabledSubjects, onSubjectFilterChange, "subject")}
+                {clusterMode === "department" && renderFilterList(departments, enabledDepartments, onDepartmentFilterChange, "department", departmentToColleges)}
+                {clusterMode === "subject" && renderFilterList(subjects, enabledSubjects, onSubjectFilterChange, "subject", subjectToColleges)}
             </div>
         </div>
     );
