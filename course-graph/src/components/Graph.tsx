@@ -374,7 +374,7 @@ function GraphComponent({
         } else {
             // Store edges BEFORE clearing
             const storedEdges: { source: string; target: string; attributes: any }[] = [];
-            graph.forEachEdge((edge, attributes, source, target) => {
+            graph.forEachEdge((_edge, attributes, source, target) => {
                 storedEdges.push({ source, target, attributes });
             });
             graph.clearEdges(); // clear AFTER storing
