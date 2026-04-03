@@ -132,6 +132,7 @@ function GraphComponent({
     const enabledCollegesRef = useRef<Set<string>>(enabledColleges);
     const visibleNodeIdsRef = useRef<Set<string>>(visibleNodeIds);
     const highlightedNodeRef = useRef<string | null>(null);
+    const hoveredNodeRef = useRef<string | null>(null);
     const focusGroupRef = useRef<{ mode: ClusterMode; value: string } | null>(null);
     const originalNodeColorRef = useRef<Map<string, string>>(new Map());
     const onNodeDoubleClickRef = useRef(onNodeDoubleClick);
@@ -204,21 +205,24 @@ function GraphComponent({
                     // Single-node highlight takes precedence
                     const highlighted = highlightedNodeRef.current;
                     if (highlighted !== null) {
-                        if (node === highlighted || graph.neighbors(highlighted).includes(node)) {
-                            return { ...data, zIndex: 1 };
+                        const isNeighbor = node === highlighted || graph.neighbors(highlighted).includes(node);
+                        if (isNeighbor) {
+                            return { ...data, zIndex: 1, color: originalNodeColorRef.current.get(node) || data.color, label: data.label };
                         }
-                        return { ...data, color: "#e0e0e0", zIndex: 0 };
+                        // Hide labels and gray out non-selected nodes, but show label on hover
+                        return { ...data, color: "#e0e0e0", zIndex: 0, label: hoveredNodeRef.current === node ? data.label : "" };
                     }
 
-                    // Group highlight (from sidebar) — gray out nodes not in the group
+                    // Group highlight (from sidebar) — gray out nodes not in the group and hide their labels
                     const group = focusGroupRef.current;
                     if (group) {
                         const attrName = group.mode === "college" ? "college" : group.mode === "department" ? "department" : "subject_code";
                         const inGroup = graph.getNodeAttribute(node, attrName) === group.value;
                         if (inGroup) {
-                            return { ...data, color: originalNodeColorRef.current.get(node) || data.color, zIndex: 1 };
+                            return { ...data, color: originalNodeColorRef.current.get(node) || data.color, zIndex: 1, label: data.label };
                         }
-                        return { ...data, color: "#e0e0e0", zIndex: 0 };
+                        // hide labels for out-of-group nodes but reveal on hover
+                        return { ...data, color: "#e0e0e0", zIndex: 0, label: hoveredNodeRef.current === node ? data.label : "" };
                     }
 
                     return data;
@@ -284,6 +288,16 @@ function GraphComponent({
                 if (isDoubleClick) return;
                 highlightedNodeRef.current =
                     highlightedNodeRef.current === node ? null : node;
+                sigma.refresh();
+            });
+
+            sigma.on("enterNode", ({ node }) => {
+                hoveredNodeRef.current = node;
+                sigma.refresh();
+            });
+
+            sigma.on("leaveNode", () => {
+                hoveredNodeRef.current = null;
                 sigma.refresh();
             });
 
