@@ -14,6 +14,7 @@ type Props = {
     focusGroup: { mode: ClusterMode; value: string } | null;
     clusterMode: ClusterMode;
     onNodeDoubleClick: (nodeId: string) => void;
+    onClearGroup?: () => void;
 };
 
 function getTargetPositions(
@@ -123,7 +124,7 @@ function animatePositions(
 
 function GraphComponent({
     nodes, edges, enabledColleges, visibleNodeIds,
-    focusNode, focusGroup, clusterMode, onNodeDoubleClick,
+    focusNode, focusGroup, clusterMode, onNodeDoubleClick, onClearGroup,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<Sigma | null>(null);
@@ -131,6 +132,8 @@ function GraphComponent({
     const enabledCollegesRef = useRef<Set<string>>(enabledColleges);
     const visibleNodeIdsRef = useRef<Set<string>>(visibleNodeIds);
     const highlightedNodeRef = useRef<string | null>(null);
+    const focusGroupRef = useRef<{ mode: ClusterMode; value: string } | null>(null);
+    const originalNodeColorRef = useRef<Map<string, string>>(new Map());
     const onNodeDoubleClickRef = useRef(onNodeDoubleClick);
     const layoutRef = useRef<FA2Layout | null>(null);
     const clusterModeRef = useRef<ClusterMode>(clusterMode);
@@ -160,6 +163,7 @@ function GraphComponent({
             nodes.forEach((node) => {
                 if (!graph.hasNode(node.id)) {
                     const pos = positions.get(node.id)!;
+                    const col = getCollegeColor(node.college);
                     graph.addNode(node.id, {
                         x: pos.x,
                         y: pos.y,
@@ -168,8 +172,9 @@ function GraphComponent({
                         college: node.college,
                         department: node.department,
                         subject_code: node.subject_code,
-                        color: getCollegeColor(node.college),
+                        color: col,
                     });
+                    originalNodeColorRef.current.set(node.id, col);
                 }
             });
 
@@ -185,9 +190,9 @@ function GraphComponent({
 
             const sigma = new Sigma(graph, container, {
                 renderEdgeLabels: false,
-                labelDensity: 0.05,
-                labelGridCellSize: 60,
-                labelRenderedSizeThreshold: 15,
+                labelDensity: 1, // How many labels are shown based on # of nodes 1 = 100%
+                labelGridCellSize: 20, // larger means fewer cells less label vice versa
+                labelRenderedSizeThreshold: 8, // nodes appearing based on zoom
                 defaultEdgeColor: "#ccc",
                 maxCameraRatio: 2,
 
@@ -195,12 +200,28 @@ function GraphComponent({
                     if (!visibleNodeIdsRef.current.has(node)) {
                         return { ...data, hidden: true };
                     }
+
+                    // Single-node highlight takes precedence
                     const highlighted = highlightedNodeRef.current;
-                    if (highlighted === null) return data;
-                    if (node === highlighted || graph.neighbors(highlighted).includes(node)) {
-                        return { ...data, zIndex: 1 };
+                    if (highlighted !== null) {
+                        if (node === highlighted || graph.neighbors(highlighted).includes(node)) {
+                            return { ...data, zIndex: 1 };
+                        }
+                        return { ...data, color: "#e0e0e0", zIndex: 0 };
                     }
-                    return { ...data, color: "#e0e0e0", zIndex: 0 };
+
+                    // Group highlight (from sidebar) — gray out nodes not in the group
+                    const group = focusGroupRef.current;
+                    if (group) {
+                        const attrName = group.mode === "college" ? "college" : group.mode === "department" ? "department" : "subject_code";
+                        const inGroup = graph.getNodeAttribute(node, attrName) === group.value;
+                        if (inGroup) {
+                            return { ...data, color: originalNodeColorRef.current.get(node) || data.color, zIndex: 1 };
+                        }
+                        return { ...data, color: "#e0e0e0", zIndex: 0 };
+                    }
+
+                    return data;
                 },
 
                 edgeReducer: (edge, data) => {
@@ -267,7 +288,11 @@ function GraphComponent({
             });
 
             sigma.on("clickStage", () => {
+                // Deselect single highlighted node
                 highlightedNodeRef.current = null;
+                // Also clear any group focus locally and notify parent
+                focusGroupRef.current = null;
+                if (onClearGroup) onClearGroup();
                 sigma.refresh();
             });
 
@@ -396,6 +421,10 @@ function GraphComponent({
         const graph = graphRef.current;
         const { mode, value } = focusGroup;
 
+        // update ref used by nodeReducer and refresh
+        focusGroupRef.current = focusGroup;
+        sigma.refresh();
+
         const getGroup = (nodeId: string) => {
             if (mode === "college") return graph.getNodeAttribute(nodeId, "college");
             if (mode === "department") return graph.getNodeAttribute(nodeId, "department");
@@ -440,6 +469,12 @@ function GraphComponent({
             { x: framedPos.x, y: framedPos.y, ratio: clampedRatio },
             { duration: 600 }
         );
+    }, [focusGroup]);
+
+    // Keep focusGroupRef in sync (clears when focusGroup is null)
+    useEffect(() => {
+        focusGroupRef.current = focusGroup;
+        if (!focusGroup) rendererRef.current?.refresh();
     }, [focusGroup]);
 
     return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;

@@ -119,6 +119,7 @@ const subjectToColleges = useMemo(() => {
                     focusGroup={focusGroup}
                     clusterMode={clusterMode}
                     onNodeDoubleClick={setSelectedCourseId}
+                    onClearGroup={() => setFocusGroup(null)}
                 />
                 <Legend colleges={colleges} />
             </div>
