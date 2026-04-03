@@ -23,7 +23,6 @@ function getTargetPositions(
     const positions = new Map<string, { x: number; y: number }>();
 
     if (clusterMode === "connectivity") {
-        // For connectivity, spread randomly — FA2 will take over
         nodes.forEach((n) => {
             positions.set(n.id, {
                 x: (Math.random() - 0.5) * 10,
@@ -190,6 +189,7 @@ function GraphComponent({
                 labelGridCellSize: 60,
                 labelRenderedSizeThreshold: 15,
                 defaultEdgeColor: "#ccc",
+                maxCameraRatio: 2,
 
                 nodeReducer: (node, data) => {
                     if (!visibleNodeIdsRef.current.has(node)) {
@@ -221,6 +221,42 @@ function GraphComponent({
                 },
             });
 
+            // Camera bounds enforcement with guard to prevent recursive updates
+            let isClamping = false;
+            sigma.getCamera().on("updated", (state) => {
+                if (isClamping) return;
+                const bounds = sigma.getBBox();
+                if (!bounds) return;
+
+                // Convert graph bbox corners to framed graph coordinates
+                const topLeft = sigma.viewportToFramedGraph(
+                    sigma.graphToViewport({ x: bounds.x[0], y: bounds.y[0] })
+                );
+                const bottomRight = sigma.viewportToFramedGraph(
+                    sigma.graphToViewport({ x: bounds.x[1], y: bounds.y[1] })
+                );
+
+                const padding = 0.3;
+                const minX = Math.min(topLeft.x, bottomRight.x) - padding;
+                const maxX = Math.max(topLeft.x, bottomRight.x) + padding;
+                const minY = Math.min(topLeft.y, bottomRight.y) - padding;
+                const maxY = Math.max(topLeft.y, bottomRight.y) + padding;
+
+                let { x, y, ratio } = state;
+                let clamped = false;
+
+                if (x < minX) { x = minX; clamped = true; }
+                if (x > maxX) { x = maxX; clamped = true; }
+                if (y < minY) { y = minY; clamped = true; }
+                if (y > maxY) { y = maxY; clamped = true; }
+
+                if (clamped) {
+                    isClamping = true;
+                    sigma.getCamera().setState({ x, y, ratio });
+                    isClamping = false;
+                }
+            });
+
             let isDoubleClick = false;
 
             sigma.on("clickNode", ({ node }) => {
@@ -246,7 +282,6 @@ function GraphComponent({
 
             rendererRef.current = sigma;
 
-            // Initial layout
             startLayout(graph, sigma, clusterModeRef.current);
         };
 
@@ -275,14 +310,11 @@ function GraphComponent({
         const graph = graphRef.current;
         if (!sigma || !graph) return;
 
-        // Stop any running layout
         if (layoutRef.current) { layoutRef.current.kill(); layoutRef.current = null; }
 
         const targetPositions = getTargetPositions(nodes, clusterMode);
 
-        // Animate nodes to their new positions
         animatePositions(graph, targetPositions, sigma, 1000, () => {
-            // After animation, run layout pass
             startLayout(graph, sigma, clusterMode);
         });
     }, [clusterMode]);
@@ -301,12 +333,12 @@ function GraphComponent({
             layoutRef.current = layout;
             setTimeout(() => { layout.stop(); sigma.refresh(); }, 8000);
         } else {
-            // Remove edges, run brief gravity-only pass, restore edges
+            // Store edges BEFORE clearing
             const storedEdges: { source: string; target: string; attributes: any }[] = [];
             graph.forEachEdge((edge, attributes, source, target) => {
                 storedEdges.push({ source, target, attributes });
             });
-            graph.clearEdges();
+            graph.clearEdges(); // clear AFTER storing
 
             const layout = new FA2Layout(graph, {
                 settings: {
@@ -373,7 +405,6 @@ function GraphComponent({
         const groupNodes = graph.nodes().filter((n) => getGroup(n) === value);
         if (groupNodes.length === 0) return;
 
-        // Calculate bounding box of the group in graph coordinates
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
 
@@ -389,27 +420,19 @@ function GraphComponent({
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
 
-        // Convert center to framed graph coordinates
         const { x: vx, y: vy } = sigma.graphToViewport({ x: centerX, y: centerY });
         const framedPos = sigma.viewportToFramedGraph({ x: vx, y: vy });
 
-        // Calculate ratio based on bounding box size relative to the viewport
-        const camera = sigma.getCamera();
-        const viewportDimensions = sigma.getDimensions();
         const graphWidth = maxX - minX;
         const graphHeight = maxY - minY;
 
-        // How much of the graph space does this cluster take up
         const graphBounds = sigma.getBBox();
         const totalGraphWidth = graphBounds.x[1] - graphBounds.x[0];
         const totalGraphHeight = graphBounds.y[1] - graphBounds.y[0];
 
-        // Fraction of total graph this cluster occupies
         const widthFraction = (graphWidth + 10) / totalGraphWidth;
         const heightFraction = (graphHeight + 10) / totalGraphHeight;
 
-        // Use the larger fraction with padding
-        // Higher fraction = bigger cluster = higher ratio = more zoomed out
         const fraction = Math.max(widthFraction, heightFraction);
         const clampedRatio = Math.max(0.02, Math.min(1.5, fraction * 1.4));
 
