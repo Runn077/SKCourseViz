@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import Legend from "../components/Legend";
 import CourseModal from "../components/CourseModal";
 import type { ClusterMode, CourseNode } from "../types/index";
+import { useNavigate } from 'react-router-dom';
 
 function GraphPage() {
     const [courses, setCourses] = useState<any[]>([]);
@@ -14,9 +15,10 @@ function GraphPage() {
     const [focusGroup, setFocusGroup] = useState<{ mode: ClusterMode; value: string } | null>(null);
     const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
     const [clusterMode, setClusterMode] = useState<ClusterMode>("connectivity");
+    const navigate = useNavigate();
 
     useEffect(() => {
-        fetch("./data/courses.json")
+        fetch("./data/courses_with_ratings.json")
             .then((res) => res.json())
             .then((data) => setCourses(data));
     }, []);
@@ -118,7 +120,7 @@ const subjectToColleges = useMemo(() => {
                     focusNode={focusNode}
                     focusGroup={focusGroup}
                     clusterMode={clusterMode}
-                    onNodeDoubleClick={setSelectedCourseId}
+                    onNodeDoubleClick={(nodeId) => window.open(`#/course/${nodeId}`, '_blank')}
                     onClearGroup={() => setFocusGroup(null)}
                 />
                 <Legend colleges={colleges} />
