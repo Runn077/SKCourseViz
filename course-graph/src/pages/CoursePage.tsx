@@ -70,13 +70,13 @@ function CoursePage() {
     }, [courseId])
 
     if (loading) return (
-        <div style={{ background: '#1a1a2e', color: '#f0f0f0', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             Loading...
         </div>
     )
 
     if (!course) return (
-        <div style={{ background: '#1a1a2e', color: '#f0f0f0', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             Course not found.
         </div>
     )
@@ -110,26 +110,26 @@ function CoursePage() {
     const hasMore = visibleReviews.length < sortedReviews.length
 
     return (
-        <div style={{ background: '#1a1a2e', color: '#f0f0f0', minHeight: '100vh', width: '100%', padding: '32px',boxSizing: 'border-box',}}>
+        <div style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100vh', width: '100%', padding: '32px',boxSizing: 'border-box',}}>
 
             {/* Close button */}
             <button
                 onClick={() => window.close()}
-                style={{ background: 'none', border: '1px solid #3a3a5c', color: '#aaa', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer', marginBottom: '24px', fontSize: '13px' }}
+                style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '6px 12px', borderRadius: 'var(--radius-md)', cursor: 'pointer', marginBottom: '24px', fontSize: 'var(--font-size-sm)' }}
             >
                 ← Close
             </button>
 
             {/* College color bar */}
-            <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: collegeColor, marginBottom: '12px' }} />
+            <div style={{ width: '40px', height: '4px', borderRadius: 'var(--radius-sm)', background: collegeColor, marginBottom: '12px' }} />
 
             {/* Course title */}
-            <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '6px' }}>
+            <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, marginBottom: '6px' }}>
                 {course.title}
             </h1>
 
             {/* Meta row */}
-            <div style={{ display: 'flex', gap: '12px', fontSize: '13px', color: '#aaa', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '12px', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: '20px', flexWrap: 'wrap' }}>
                 <span>{course.college}</span>
                 <span>·</span>
                 <span>{course.department}</span>
@@ -141,37 +141,37 @@ function CoursePage() {
             {/* Rating summary */}
             {course.num_reviews > 0 && (
                 <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-                    <div style={{ background: '#12122a', borderRadius: '8px', padding: '16px 24px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '28px', fontWeight: 700, color: collegeColor }}>{course.avg_quality?.toFixed(1)}</div>
-                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>Avg Quality</div>
+                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: '16px 24px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, color: collegeColor }}>{course.avg_quality?.toFixed(1)}</div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>Avg Quality</div>
                     </div>
-                    <div style={{ background: '#12122a', borderRadius: '8px', padding: '16px 24px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '28px', fontWeight: 700, color: collegeColor }}>{course.avg_difficulty?.toFixed(1)}</div>
-                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>Avg Difficulty</div>
+                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: '16px 24px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, color: collegeColor }}>{course.avg_difficulty?.toFixed(1)}</div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>Avg Difficulty</div>
                     </div>
-                    <div style={{ background: '#12122a', borderRadius: '8px', padding: '16px 24px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '28px', fontWeight: 700, color: collegeColor }}>{course.num_reviews}</div>
-                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>Reviews</div>
+                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: '16px 24px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, color: collegeColor }}>{course.num_reviews}</div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>Reviews</div>
                     </div>
                 </div>
             )}
 
             {/* Description */}
-            <div style={{ fontSize: '14px', lineHeight: 1.7, color: '#ddd', marginBottom: '24px' }}>
+            <div style={{ fontSize: 'var(--font-size-md)', lineHeight: 1.7, color: 'var(--text-primary)', marginBottom: '24px' }}>
                 {course.description}
             </div>
 
             {/* Prerequisites */}
             {course.prerequisite.length > 0 && (
                 <div style={{ marginBottom: '24px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa', marginBottom: '8px' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                         Prerequisites
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', cursor: 'pointer' }}>
                         {course.prerequisite.map(p => (
                             <span key={p} 
                                 onClick={() => window.open(`#/course/${p}`, '_blank')} 
-                                style={{ background: '#2a2a4a', border: '1px solid #3a3a5c', borderRadius: '4px', padding: '3px 8px', fontSize: '12px', fontWeight: 600 }}>
+                                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '3px 8px', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
                                 {p}
                             </span>
                         ))}
@@ -184,7 +184,7 @@ function CoursePage() {
                 href={course.link}
                 target="_blank"
                 rel="noreferrer"
-                style={{ display: 'inline-block', marginBottom: '32px', padding: '8px 16px', background: collegeColor, color: '#fff', borderRadius: '5px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}
+                style={{ display: 'inline-block', marginBottom: '32px', padding: '8px 16px', background: collegeColor, color: 'var(--text-primary)', borderRadius: 'var(--radius-md)', fontSize: 'var(--font-size-sm)', fontWeight: 600, textDecoration: 'none' }}
             >
                 View on USask Catalogue
             </a>
@@ -192,7 +192,7 @@ function CoursePage() {
             {/* Professors */}
             {course.professors.length > 0 && (
                 <div style={{ marginBottom: '32px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa', marginBottom: '12px' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                         Professors
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -200,20 +200,20 @@ function CoursePage() {
                             <div
                                 key={prof.id}
                                 onClick={() => window.open(`https://www.ratemyprofessors.com/professor/${prof.id}`, '_blank')}
-                                style={{ background: '#12122a', borderRadius: '6px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                                style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                             >
                                 <div>
-                                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{prof.name}</div>
-                                    <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{prof.num_ratings} ratings on Rate My Professors</div>
+                                    <div style={{ fontWeight: 600, fontSize: 'var(--font-size-md)' }}>{prof.name}</div>
+                                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginTop: '2px' }}>{prof.num_ratings} ratings on Rate My Professors</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '16px', textAlign: 'center' }}>
                                     <div>
-                                        <div style={{ fontSize: '18px', fontWeight: 700, color: collegeColor }}>{prof.overall_rating?.toFixed(1) ?? 'N/A'}</div>
-                                        <div style={{ fontSize: '10px', color: '#aaa' }}>Quality</div>
+                                        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: collegeColor }}>{prof.overall_rating?.toFixed(1) ?? 'N/A'}</div>
+                                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Quality</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '18px', fontWeight: 700, color: collegeColor }}>{prof.difficulty?.toFixed(1) ?? 'N/A'}</div>
-                                        <div style={{ fontSize: '10px', color: '#aaa' }}>Difficulty</div>
+                                        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: collegeColor }}>{prof.difficulty?.toFixed(1) ?? 'N/A'}</div>
+                                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Difficulty</div>
                                     </div>
                                 </div>
                             </div>
@@ -224,7 +224,7 @@ function CoursePage() {
 
             {/* Reviews section */}
             <div>
-                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa', marginBottom: '12px' }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                     Reviews
                 </div>
 
@@ -234,7 +234,7 @@ function CoursePage() {
                     <select
                         value={sortBy}
                         onChange={e => { setSortBy(e.target.value as SortOption); setPage(1); }}
-                        style={{ padding: '7px 10px', borderRadius: '5px', border: '1px solid #3a3a5c', background: '#12122a', color: '#f0f0f0', fontSize: '13px', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer', outline: 'none' }}
                     >
                         <option value="date_newest">Date: Newest First</option>
                         <option value="date_oldest">Date: Oldest First</option>
@@ -247,7 +247,7 @@ function CoursePage() {
                         <select
                             value={selectedProfessor}
                             onChange={e => { setSelectedProfessor(e.target.value); setPage(1); }}
-                            style={{ padding: '7px 10px', borderRadius: '5px', border: '1px solid #3a3a5c', background: '#12122a', color: '#f0f0f0', fontSize: '13px', cursor: 'pointer', outline: 'none' }}
+                            style={{ padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer', outline: 'none' }}
                         >
                             <option value="all">All Professors</option>
                             {course.professors.map(prof => (
@@ -259,38 +259,38 @@ function CoursePage() {
 
                 {/* No reviews message */}
                 {sortedReviews.length === 0 && (
-                    <div style={{ color: '#666', fontSize: '13px' }}>No reviews for this selection.</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>No reviews for this selection.</div>
                 )}
 
                 {/* Review cards */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {visibleReviews.map((review, i) => (
-                        <div key={i} style={{ background: '#12122a', borderRadius: '6px', padding: '16px' }}>
+                        <div key={i} style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
 
                             {/* Review header */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                                 <div>
-                                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{review.professor_name}</div>
-                                    <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{review.date}</div>
+                                    <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>{review.professor_name}</div>
+                                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>{review.date}</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '12px', textAlign: 'center' }}>
                                     {review.quality !== null && (
                                         <div>
-                                            <div style={{ fontSize: '16px', fontWeight: 700, color: collegeColor }}>{review.quality.toFixed(1)}</div>
-                                            <div style={{ fontSize: '10px', color: '#aaa' }}>Quality</div>
+                                            <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 700, color: collegeColor }}>{review.quality.toFixed(1)}</div>
+                                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Quality</div>
                                         </div>
                                     )}
                                     {review.difficulty !== null && (
                                         <div>
-                                            <div style={{ fontSize: '16px', fontWeight: 700, color: collegeColor }}>{review.difficulty.toFixed(1)}</div>
-                                            <div style={{ fontSize: '10px', color: '#aaa' }}>Difficulty</div>
+                                            <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 700, color: collegeColor }}>{review.difficulty.toFixed(1)}</div>
+                                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>Difficulty</div>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* Meta info */}
-                            <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#888', marginBottom: '10px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: '10px', flexWrap: 'wrap' }}>
                                 {review.grade && <span>Grade: {review.grade}</span>}
                                 {review.for_credit && <span>For Credit: {review.for_credit}</span>}
                                 {review.attendance && <span>Attendance: {review.attendance}</span>}
@@ -299,7 +299,7 @@ function CoursePage() {
 
                             {/* Comment */}
                             {review.comment && (
-                                <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#ddd', marginBottom: '10px' }}>
+                                <div style={{ fontSize: 'var(--font-size-sm)', lineHeight: 1.6, color: 'var(--text-primary)', marginBottom: '10px' }}>
                                     {review.comment}
                                 </div>
                             )}
@@ -308,7 +308,7 @@ function CoursePage() {
                             {review.tags.length > 0 && (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {review.tags.map((tag, j) => (
-                                        <span key={j} style={{ background: '#2a2a4a', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', color: '#aaa' }}>
+                                        <span key={j} style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '2px 8px', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
                                             {tag}
                                         </span>
                                     ))}
@@ -322,7 +322,7 @@ function CoursePage() {
                 {hasMore && (
                     <button
                         onClick={() => setPage(p => p + 1)}
-                        style={{ marginTop: '16px', width: '100%', padding: '10px', background: '#2a2a4a', border: '1px solid #3a3a5c', color: '#f0f0f0', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                        style={{ marginTop: '16px', width: '100%', padding: '10px', background: 'var(--bg-hover)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 'var(--font-size-sm)' }}
                     >
                         Load More Reviews ({sortedReviews.length - visibleReviews.length} remaining)
                     </button>
