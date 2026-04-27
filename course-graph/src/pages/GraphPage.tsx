@@ -2,9 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import GraphComponent from "../components/Graph";
 import Sidebar from "../components/Sidebar";
 import Legend from "../components/Legend";
-import CourseModal from "../components/CourseModal";
 import type { ClusterMode, CourseNode } from "../types/index";
-import { useNavigate } from 'react-router-dom';
 
 function GraphPage() {
     const [courses, setCourses] = useState<any[]>([]);
@@ -13,9 +11,7 @@ function GraphPage() {
     const [enabledSubjects, setEnabledSubjects] = useState<Set<string> | null>(null);
     const [focusNode, setFocusNode] = useState<string | null>(null);
     const [focusGroup, setFocusGroup] = useState<{ mode: ClusterMode; value: string } | null>(null);
-    const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
     const [clusterMode, setClusterMode] = useState<ClusterMode>("connectivity");
-    const navigate = useNavigate();
 
     useEffect(() => {
         fetch("./data/courses_with_ratings.json")
@@ -85,10 +81,6 @@ const subjectToColleges = useMemo(() => {
         );
     }, [allNodes, clusterMode, activeColleges, activeDepartments, activeSubjects]);
 
-    const selectedCourse = useMemo(() =>
-        courses.find((c) => c.class_name === selectedCourseId) ?? null
-    , [courses, selectedCourseId]);
-
     if (courses.length === 0) return <div>Loading...</div>;
 
     return (
@@ -111,7 +103,7 @@ const subjectToColleges = useMemo(() => {
                 departmentToColleges={departmentToColleges}
                 subjectToColleges={subjectToColleges}
             />
-            <div style={{ flex: 1, height: "100%", position: "relative" }}>
+            <div style={{ flex: 1, height: "100%", position: "relative", backgroundColor: "white" }}>
                 <GraphComponent
                     nodes={allNodes}
                     edges={allEdges}
@@ -125,12 +117,6 @@ const subjectToColleges = useMemo(() => {
                 />
                 <Legend colleges={colleges} />
             </div>
-            {selectedCourse && (
-                <CourseModal
-                    course={selectedCourse}
-                    onClose={() => setSelectedCourseId(null)}
-                />
-            )}
         </div>
     );
 }
