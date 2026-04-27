@@ -124,7 +124,7 @@ function CoursePage() {
             <div style={{ width: '40px', height: '4px', borderRadius: 'var(--radius-sm)', background: collegeColor, marginBottom: '12px' }} />
 
             {/* Course title */}
-            <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, marginBottom: '6px' }}>
+            <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, marginBottom: '6px', fontFamily: "Times New Roman" }}>
                 {course.title}
             </h1>
 
