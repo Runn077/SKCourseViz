@@ -18,12 +18,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     const searchRef = useRef<HTMLDivElement>(null)
     const [visibleResults, setVisibleResults] = useState(10);
 
-    // Determine active tab from current path
-    const activeTab = location.hash.startsWith('#/course')
+    // HashRouter exposes the current route in location.pathname.
+    const activePath = location.pathname.replace(/\/+$/, '') || '/'
+    const activeTab = activePath.startsWith('/course')
         ? null
-        : location.hash === '#/heatmap'
+        : activePath === '/heatmap'
         ? 'heatmap'
-        : location.hash === '#/list'
+        : activePath === '/list'
         ? 'list'
         : 'graph'
 
@@ -54,7 +55,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     const handleSelect = (classname: string) => {
         setQuery('')
         setShowResults(false)
-        navigate(`/course/${classname}`)
+        window.open(`#/course/${classname}`, '_blank')
     }
 
     const handleScrollSearch = (e: React.UIEvent<HTMLDivElement>) => {
@@ -102,7 +103,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         value={query}
                         onChange={e => { setQuery(e.target.value); setShowResults(true) }}
                         onFocus={() => setShowResults(true)}
-                        onScroll={handleScrollSearch}
                         style={{
                             width: '100%',
                             padding: '6px 12px',
@@ -120,7 +120,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
                     {/* Dropdown results */}
                     {showResults && results.length > 0 && (
-                        <div style={{
+                        <div onScroll={handleScrollSearch} style={{
                             position: 'absolute',
                             top: '100%',
                             left: 0,
@@ -184,7 +184,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         style={{
                             background: 'none',
                             border: 'none',
-                            borderBottom: activeTab === tab ? '2px solid #006341' : '2px solid transparent',
+                            borderBottom: activeTab === tab ? '2px solid #DBCC52' : '2px solid transparent',
                             color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
                             fontSize: '13px',
                             fontWeight: activeTab === tab ? 600 : 400,
