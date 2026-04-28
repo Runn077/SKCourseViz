@@ -84,7 +84,7 @@ const subjectToColleges = useMemo(() => {
     if (courses.length === 0) return <div>Loading...</div>;
 
     return (
-        <div style={{ display: "flex", width: "100%", height: "100%" }}>
+        <div style={{ display: "flex", width: "100%", flex: 1, overflow: "hidden" }}>
             <Sidebar
                 colleges={colleges}
                 departments={departments}

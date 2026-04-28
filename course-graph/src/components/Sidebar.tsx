@@ -183,9 +183,6 @@ export default function Sidebar({
                 <div style={{ height: "100%", display: "flex", flexDirection: "column", opacity: isCollapsed ? 0 : 1, transition: "opacity 180ms ease" }}>
                     <div style={{ padding: "16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div>
-                            <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Times New Roman" }}>
-                                USask Course Graph
-                            </div>
                             <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
                                 {nodes.length} courses
                             </div>
