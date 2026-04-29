@@ -14,6 +14,7 @@ type Course = {
 
 type Props = {
     courses: Course[]
+    metric?: 'quality' | 'difficulty'
 }
 
 type CourseHierarchyNode = {
@@ -29,15 +30,15 @@ type HoverInfo = {
     pointer: { x: number; y: number }
 }
 
-function getQualityColor(quality: number | null): string {
-    if (quality === null) return '#444'
+function getMetricColor(value: number | null): string {
+    if (value === null) return '#444'
     const scale = d3.scaleLinear<string>()
         .domain([1, 3, 5])
         .range(['#c0392b', '#f1c40f', '#27ae60'])
-    return scale(quality)
+    return scale(value)
 }
 
-export default function Heatmap({ courses }: Props) {
+export default function Heatmap({ courses, metric = 'quality' }: Props) {
     const navigate = useNavigate()
     const containerRef = useRef<HTMLDivElement>(null)
     const svgRef = useRef<SVGSVGElement>(null)
@@ -220,7 +221,7 @@ export default function Heatmap({ courses }: Props) {
         if (!hoverInfo) return { left: 12, top: 12 }
         const panelWidth = 320
         const margin = 12
-        const cursorOffset = 34
+        const cursorOffset = 40
         const pointerX = hoverInfo.pointer.x
         const pointerY = hoverInfo.pointer.y
         const isRightHalf = pointerX > width / 2
@@ -302,7 +303,8 @@ export default function Heatmap({ courses }: Props) {
                         const w = leaf.x1 - leaf.x0
                         const h = leaf.y1 - leaf.y0
                         const course = leaf.data.course as Course
-                        const color = getQualityColor(course.avg_quality)
+                        const metricValue = metric === 'quality' ? course.avg_quality : course.avg_difficulty
+                        const color = getMetricColor(metricValue)
                         const effectiveWidth = w * zoomTransform.k
                         const effectiveHeight = h * zoomTransform.k
                         const labelScreenFontSize = getFittedLabelFontSize(course.class_name, effectiveWidth, effectiveHeight)
@@ -363,7 +365,7 @@ export default function Heatmap({ courses }: Props) {
                                     strokeWidth={1}
                                     opacity={0.85}
                                 />
-                                <title>{course.class_name} — {course.title} — Quality: {course.avg_quality?.toFixed(1) ?? 'N/A'} — Reviews: {course.num_reviews}</title>
+                                
 
                                 {showLabel && labelText && (
                                     <text
@@ -391,7 +393,7 @@ export default function Heatmap({ courses }: Props) {
                                         clipPath={`url(#${clipId})`}
                                         style={{ userSelect: 'none', pointerEvents: 'none' }}
                                     >
-                                        {course.avg_quality?.toFixed(1)}
+                                        {(metric === 'quality' ? course.avg_quality : course.avg_difficulty)?.toFixed(1) ?? 'N/A'}
                                     </text>
                                 )}
                             </g>
@@ -478,7 +480,7 @@ export default function Heatmap({ courses }: Props) {
                                                 marginTop: 3,
                                             }}
                                         >
-                                            Quality: {course.avg_quality?.toFixed(1) ?? 'N/A'} · Difficulty: {course.avg_difficulty?.toFixed(1) ?? 'N/A'}
+                                            Quality: {course.avg_quality?.toFixed(1) ?? 'N/A'} · Difficulty: {course.avg_difficulty?.toFixed(1) ?? 'N/A'} · Reviews: {course.num_reviews}
                                         </div>
                                     </div>
                                 )

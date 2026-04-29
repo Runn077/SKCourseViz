@@ -92,7 +92,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         letterSpacing: '0.02em',
                     }}
                 >
-                    UofSViz
+                    SKCourseViz
                 </div>
 
                 {/* Search bar */}

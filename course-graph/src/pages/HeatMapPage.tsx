@@ -27,6 +27,7 @@ export default function HeatmapPage() {
     const [courses, setCourses] = useState<Course[]>([])
     const [loading, setLoading] = useState(true)
     const [selected, setSelected] = useState<string>('top500')
+    const [metric, setMetric] = useState<'quality' | 'difficulty'>('quality')
 
     useEffect(() => {
         fetch('./data/courses_with_ratings.json')
@@ -66,6 +67,8 @@ export default function HeatmapPage() {
                 colleges={colleges}
                 selected={selected}
                 onSelect={setSelected}
+                metric={metric}
+                onMetricChange={setMetric}
             />
 
             {/* Main area */}
@@ -89,13 +92,13 @@ export default function HeatmapPage() {
                             {selected === 'top500' ? 'Top 500 Most Reviewed Courses' : selected}
                         </h2>
                         <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
-                            {selectedCourses.length} courses · min {MIN_REVIEWS} reviews · colored by avg quality
+                                    {selectedCourses.length} courses · min {MIN_REVIEWS} reviews · colored by avg {metric}
                         </div>
                     </div>
 
                     {/* Color legend */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginRight: '4px' }}>Quality:</span>
+                        <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginRight: '4px' }}>{metric === 'quality' ? 'Quality:' : 'Difficulty:'}</span>
                         {legendStops.map(stop => (
                             <div key={stop.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                                 <div style={{ width: '24px', height: '12px', background: stop.color, borderRadius: '2px' }} />
@@ -115,7 +118,7 @@ export default function HeatmapPage() {
                     }}
                 >
                     {selectedCourses.length > 0
-                        ? <Heatmap courses={selectedCourses} />
+                        ? <Heatmap courses={selectedCourses} metric={metric} />
                         : <div style={{ color: 'var(--text-muted)', padding: '32px', textAlign: 'center' }}>
                             No courses with enough reviews in this college.
                         </div>

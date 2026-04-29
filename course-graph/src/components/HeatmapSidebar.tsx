@@ -4,9 +4,10 @@ type Props = {
     colleges: string[]
     selected: string
     onSelect: (value: string) => void
+    metric?: 'quality' | 'difficulty'
+    onMetricChange?: (m: 'quality' | 'difficulty') => void
 }
-
-export default function HeatmapSidebar({ colleges, selected, onSelect }: Props) {
+export default function HeatmapSidebar({ colleges, selected, onSelect, metric = 'quality', onMetricChange }: Props) {
     return (
         <div style={{
             width: '200px',
@@ -19,8 +20,39 @@ export default function HeatmapSidebar({ colleges, selected, onSelect }: Props) 
         }}>
             {/* Header */}
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
-                    Heatmaps
+                <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                            type="button"
+                            onClick={() => onMetricChange?.('quality')}
+                            style={{
+                                padding: '6px 8px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                borderRadius: 6,
+                                border: metric === 'quality' ? '1px solid var(--border)' : '1px solid transparent',
+                                background: metric === 'quality' ? 'var(--bg-hover)' : 'transparent',
+                                color: metric === 'quality' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                            }}
+                        >
+                            Quality
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onMetricChange?.('difficulty')}
+                            style={{
+                                padding: '6px 8px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                borderRadius: 6,
+                                border: metric === 'difficulty' ? '1px solid var(--border)' : '1px solid transparent',
+                                background: metric === 'difficulty' ? 'var(--bg-hover)' : 'transparent',
+                                color: metric === 'difficulty' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                            }}
+                        >
+                            Difficulty
+                        </button>
+                    </div>
                 </div>
             </div>
 
