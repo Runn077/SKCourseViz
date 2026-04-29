@@ -29,6 +29,7 @@ type Course = {
     class_name: string
     title: string
     description: string
+    notes?: string
     college: string
     department: string
     subject_code: string
@@ -108,18 +109,67 @@ function CoursePage() {
     // page 1 shows 0-4, page 2 shows 0-9, etc
     const visibleReviews = sortedReviews.slice(0, page * REVIEWS_PER_PAGE)
     const hasMore = visibleReviews.length < sortedReviews.length
+    const sanitizedNoteLines = (course.notes ?? '')
+        .split('\n')
+        .map(line => line.trimEnd())
+        .filter(line => {
+            const normalized = line.trim().toLowerCase()
+            if (normalized === 'weekly hours:') return false
+            if (/^\d+\s+lecture hours$/i.test(line.trim())) return false
+            return true
+        })
+    const noteLines = sanitizedNoteLines.reduce<string[]>((acc, line) => {
+        const isEmpty = line.trim().length === 0
+        if (isEmpty && (acc.length === 0 || acc[acc.length - 1].trim().length === 0)) {
+            return acc
+        }
+        acc.push(line)
+        return acc
+    }, [])
+
+    const renderLinkedNoteLine = (line: string) => {
+        const courseCodeRegex = /\b([A-Z]{2,4})\s?(\d{3})\b/g
+        const parts: React.ReactNode[] = []
+        let lastIndex = 0
+        let match: RegExpExecArray | null
+
+        while ((match = courseCodeRegex.exec(line)) !== null) {
+            const [fullMatch, subject, number] = match
+            const start = match.index
+            const end = start + fullMatch.length
+
+            if (start > lastIndex) {
+                parts.push(line.slice(lastIndex, start))
+            }
+
+            const normalizedCode = `${subject}${number}`
+            parts.push(
+                <span
+                    key={`${normalizedCode}-${start}`}
+                    onClick={() => window.open(`#/course/${normalizedCode}`, '_blank')}
+                    style={{
+                        color: '#DBCC52',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        fontWeight: 600,
+                    }}
+                >
+                    {fullMatch}
+                </span>
+            )
+
+            lastIndex = end
+        }
+
+        if (lastIndex < line.length) {
+            parts.push(line.slice(lastIndex))
+        }
+
+        return parts.length > 0 ? parts : line
+    }
 
     return (
         <div style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100vh', width: '100%', padding: '32px',boxSizing: 'border-box',}}>
-
-            {/* Close button */}
-            <button
-                onClick={() => window.close()}
-                style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '6px 12px', borderRadius: 'var(--radius-md)', cursor: 'pointer', marginBottom: '24px', fontSize: 'var(--font-size-sm)' }}
-            >
-                ← Close
-            </button>
-
             {/* College color bar */}
             <div style={{ width: '40px', height: '4px', borderRadius: 'var(--radius-sm)', background: collegeColor, marginBottom: '12px' }} />
 
@@ -161,20 +211,47 @@ function CoursePage() {
                 {course.description}
             </div>
 
-            {/* Prerequisites */}
-            {course.prerequisite.length > 0 && (
+            {/* Notes */}
+            {noteLines.length > 0 && (
                 <div style={{ marginBottom: '24px' }}>
                     <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                        Prerequisites
+                        Course Notes: 
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', cursor: 'pointer' }}>
-                        {course.prerequisite.map(p => (
-                            <span key={p} 
-                                onClick={() => window.open(`#/course/${p}`, '_blank')} 
-                                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '3px 8px', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
-                                {p}
-                            </span>
-                        ))}
+                    <div
+                        style={{
+                            fontSize: 'var(--font-size-md)',
+                            lineHeight: 1.7,
+                            color: 'var(--text-primary)',
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '12px 14px',
+                            whiteSpace: 'pre-wrap',
+                        }}
+                    >
+                        {noteLines.map((line, idx) => {
+                            const trimmed = line.trim()
+                            const prev = idx > 0 ? noteLines[idx - 1].trim() : ''
+                            const isEmpty = trimmed.length === 0
+                            const isHeaderLine = /:$/.test(trimmed)
+                            const isIndented = !isEmpty && !isHeaderLine && (prev.endsWith(':') || /^note:/i.test(prev))
+
+                            if (isEmpty) {
+                                return <div key={`spacer-${idx}`} style={{ height: 4 }} />
+                            }
+
+                            return (
+                                <div
+                                    key={`${line}-${idx}`}
+                                    style={{
+                                        marginBottom: idx === noteLines.length - 1 ? 0 : 2,
+                                        paddingLeft: isIndented ? 12 : 0,
+                                    }}
+                                >
+                                    {renderLinkedNoteLine(trimmed)}
+                                </div>
+                            )
+                        })}
                     </div>
                 </div>
             )}
