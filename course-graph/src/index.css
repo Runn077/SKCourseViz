@@ -7,9 +7,9 @@ html, body, #root {
 
 body {
   display: block;
-  background-color: #0a1a12;
+  background: var(--bg-primary);
   font-family: Arial, sans-serif;
-} 
+}
 
 :root {
   --bg-primary: #0a1a12;
@@ -30,4 +30,18 @@ body {
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+}
+
+/* Light theme overrides */
+.light :root,
+.light {
+  --bg-primary: #C1E1C1;
+  --bg-secondary: #e6efe6;
+  --bg-hover: #d2ebd2;
+  --border: #c2d9c2;
+  --text-primary: #0a1a12;
+  --text-secondary: #333;
+  --text-muted: #666;
+  --accent: #006341;
+  --accent-hover: #00804f;
 }

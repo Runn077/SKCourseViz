@@ -152,7 +152,7 @@ export default function Sidebar({
         <div style={{
             width: isCollapsed ? "40px" : "240px",
             height: "100%",
-            background: "var(--bg-primary)",
+            background: "var(--bg-secondary)",
             color: "var(--text-primary)",
             display: "flex",
             flexDirection: "column",

@@ -52,6 +52,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         ? courses.filter(c => c.class_name.toLowerCase().startsWith(query.toLowerCase())).slice(0, visibleResults)
         : []
 
+    const [isLight, setIsLight] = useState(false)
+
+    useEffect(() => {
+        const saved = localStorage.getItem('theme')
+        if (saved === 'light') {
+            setIsLight(true)
+            document.documentElement.classList.add('light')
+        }
+    }, [])
+
     const handleSelect = (classname: string) => {
         setQuery('')
         setShowResults(false)
@@ -86,7 +96,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         fontFamily: 'Times New Roman, serif',
                         fontSize: '20px',
                         fontWeight: 700,
-                        color: '#fff',
+                        color: 'var(--text-primary)',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
                         letterSpacing: '0.02em',
@@ -109,14 +119,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             borderRadius: '5px',
                             border: 'none',
                             background: 'rgba(255,255,255,0.15)',
-                            color: '#fff',
+                            color: 'var(--text-primary)',
                             fontSize: '13px',
                             boxSizing: 'border-box',
                             outline: 'none',
                         }}
                     />
                     {/* Placeholder color fix */}
-                    <style>{`input::placeholder { color: rgba(255,255,255,0.6); }`}</style>
+                    <style>{`input::placeholder { color: var(--text-secondary); }`}</style>
 
                     {/* Dropdown results */}
                     {showResults && results.length > 0 && (
@@ -164,6 +174,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </div>
                     )}
                 </div>
+                {/* Theme toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                        onClick={() => {
+                            const next = !isLight
+                            setIsLight(next)
+                            if (next) document.documentElement.classList.add('light')
+                            else document.documentElement.classList.remove('light')
+                            localStorage.setItem('theme', next ? 'light' : 'dark')
+                        }}
+                        style={{
+                            padding: '6px 10px',
+                            borderRadius: 6,
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: 'transparent',
+                            color: 'var(--text-primary)'
+                        }}
+                    >
+                        {isLight ? 'Light' : 'Dark'}
+                    </button>
+                </div>
             </div>
 
             {/* Tab navbar */}
@@ -185,7 +217,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             background: 'none',
                             border: 'none',
                             borderBottom: activeTab === tab ? '2px solid #DBCC52' : '2px solid transparent',
-                            color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
+                            color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
                             fontSize: '13px',
                             fontWeight: activeTab === tab ? 600 : 400,
                             cursor: 'pointer',
@@ -194,7 +226,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             textTransform: 'capitalize',
                             transition: 'color 0.15s, border-color 0.15s',
                         }}
-                        onMouseEnter={e => { if (activeTab !== tab) e.currentTarget.style.color = '#fff' }}
+                        onMouseEnter={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text-primary)' }}
                         onMouseLeave={e => { if (activeTab !== tab) e.currentTarget.style.color = 'var(--text-secondary)' }}
                     >
                         {tab}
