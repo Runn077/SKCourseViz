@@ -247,8 +247,22 @@ export default function ListPage() {
                     </select>
 
                     {/* Credits */}
-                    <select value={filterCredits} onChange={e => setFilterCredits(e.target.value)} style={selectStyle}>
-                        {credits.map(c => <option key={c} value={c}>{c === 'all' ? 'All Credits' : `${c} credits`}</option>)}
+                    <select
+                    value={filterCredits}
+                    onChange={e => setFilterCredits(e.target.value)}
+                    style={selectStyle}
+                    >
+                    {credits
+                        .sort((a, b) => {
+                        if (a === 'all') return -1
+                        if (b === 'all') return 1
+                        return Number(a) - Number(b)
+                        })
+                        .map(c => (
+                        <option key={c} value={c}>
+                            {c === 'all' ? 'All Credits' : `${c} credits`}
+                        </option>
+                        ))}
                     </select>
 
                     {/* Has reviews */}
