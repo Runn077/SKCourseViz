@@ -66,7 +66,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100vh', minHeight: '100vh' }}>
 
             {/* Top navbar */}
             <div style={{
