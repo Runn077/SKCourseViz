@@ -26,6 +26,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         ? 'heatmap'
         : activePath === '/list'
         ? 'list'
+        : activePath === '/about'
+        ? 'about'
         : 'graph'
 
     useEffect(() => {
@@ -174,8 +176,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </div>
                     )}
                 </div>
-                {/* Theme toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Theme toggle */}
                     <button
                         onClick={() => {
                             const next = !isLight
@@ -209,7 +211,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 flexShrink: 0,
                 borderBottom: '1px solid var(--border)',
             }}>
-                {(['graph', 'heatmap', 'list'] as const).map(tab => (
+                {(['graph', 'heatmap', 'list', 'about'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => navigate(tab === 'graph' ? '/' : `/${tab}`)}
