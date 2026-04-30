@@ -1,4 +1,4 @@
-# Usask Course Graph
+# SKCourseViz
 This website visualizes courses from USask
 
-https://runn077.github.io/Usask-Course-Graph/
+https://runn077.github.io/SKcourseViz/
