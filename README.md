@@ -1,4 +1,4 @@
 # Usask Course Graph
-This website is a graph of all USASK courses
+This website visualizes courses from USask
 
 https://runn077.github.io/Usask-Course-Graph/
